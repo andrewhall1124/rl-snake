@@ -17,7 +17,7 @@ uv sync
 Train the agent for 5000 episodes (default):
 
 ```bash
-python scripts/train_q_learning_agent.py
+python scripts/train.py
 ```
 
 Training progress will be displayed every 100 episodes. The Q-table will be saved:
@@ -29,7 +29,7 @@ Training progress will be displayed every 100 episodes. The Q-table will be save
 Evaluate the trained agent:
 
 ```bash
-python scripts/evaluate_q_learning_agent.py
+python scripts/evaluate.py
 ```
 
 This will run 100 evaluation episodes (pure exploitation, no exploration) and display statistics.
@@ -37,13 +37,13 @@ This will run 100 evaluation episodes (pure exploitation, no exploration) and di
 To evaluate a specific checkpoint:
 
 ```bash
-python scripts/evaluate_q_learning_agent.py models/q_table_episode_2500.pkl
+python scripts/evaluate.py models/q_table_episode_2500.pkl
 ```
 
 To watch the agent play with visualization:
 
 ```bash
-python scripts/evaluate_q_learning_agent.py
+python scripts/evaluate.py
 # Answer 'y' when prompted to watch episodes
 ```
 

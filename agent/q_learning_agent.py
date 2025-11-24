@@ -1,6 +1,8 @@
 import numpy as np
 import pickle
-from collections import defaultdict
+import os
+from collections import defaultdict, deque
+from tqdm import tqdm
 
 
 class QLearningAgent:
@@ -127,4 +129,90 @@ class QLearningAgent:
         return {
             'num_states': len(self.q_table),
             'epsilon': self.epsilon
+        }
+
+    def train(self, env, num_episodes, save_interval=100, model_dir='models'):
+        """
+        Train the agent on the given environment.
+
+        Args:
+            env: Environment instance to train on
+            num_episodes: Number of episodes to train
+            save_interval: Interval for saving Q-table checkpoints
+            model_dir: Directory to save model checkpoints
+
+        Returns:
+            dict: Training metrics including episode_rewards and episode_scores
+        """
+        print("=" * 50)
+        print("Snake Q-Learning Training")
+        print("=" * 50)
+        print(f"Episodes: {num_episodes}")
+        print(f"Learning Rate: {self.learning_rate}")
+        print(f"Discount Factor: {self.discount_factor}")
+        print(f"Epsilon: {self.epsilon} -> {self.epsilon_min} (decay: {self.epsilon_decay})")
+        print("=" * 50)
+
+        # Create directories
+        os.makedirs(model_dir, exist_ok=True)
+
+        # Metrics tracking
+        episode_rewards = []
+        episode_scores = []
+        reward_window = deque(maxlen=100)
+        score_window = deque(maxlen=100)
+
+        # Training loop
+        for episode in tqdm(range(1, num_episodes + 1), desc="Training"):
+            state = env.reset()
+            total_reward = 0
+            steps = 0
+            done = False
+
+            while not done:
+                # Select and perform action
+                action = self.get_action(state, training=True)
+                next_state, reward, done, info = env.step(action)
+
+                # Update Q-table
+                self.update(state, action, reward, next_state, done)
+
+                # Update counters
+                total_reward += reward
+                steps += 1
+                state = next_state
+
+            # Decay epsilon after episode
+            self.decay_epsilon()
+
+            # Track metrics
+            episode_rewards.append(total_reward)
+            episode_scores.append(info['score'])
+            reward_window.append(total_reward)
+            score_window.append(info['score'])
+
+            # Save Q-table periodically
+            if episode % save_interval == 0:
+                save_path = os.path.join(model_dir, f'q_table_episode_{episode}.pkl')
+                self.save(save_path)
+
+        # Final save
+        final_path = os.path.join(model_dir, 'q_table_final.pkl')
+        self.save(final_path)
+
+        # Print summary
+        print("\n" + "=" * 50)
+        print("Training Complete!")
+        print("=" * 50)
+        print(f"Total Episodes: {len(episode_rewards)}")
+        print(f"Average Reward: {np.mean(episode_rewards):.2f}")
+        print(f"Average Score: {np.mean(episode_scores):.2f}")
+        print(f"Max Score: {np.max(episode_scores):.0f}")
+        print(f"Final Epsilon: {self.epsilon:.3f}")
+        print(f"Q-table States: {len(self.q_table)}")
+        print("=" * 50)
+
+        return {
+            'episode_rewards': episode_rewards,
+            'episode_scores': episode_scores
         }
