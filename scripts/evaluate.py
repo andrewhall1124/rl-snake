@@ -2,9 +2,7 @@
 Evaluation script for trained Snake agents (agent-agnostic).
 """
 
-import os
 import time
-from typing import Any
 
 import numpy as np
 
@@ -12,52 +10,26 @@ from agent import BaseAgent
 from config import config
 from environment import SnakeEnv
 
-AgentClass = type[BaseAgent]
 EvalResults = dict[str, float]
 
 
-def _infer_agent_class(model_path: str) -> AgentClass:
-    """
-    Infer agent class from model path filename.
-
-    Args:
-        model_path: Path to the saved model
-
-    Returns:
-        Agent class
-    """
-    from agent import QLearningAgent
-
-    # Simple inference based on filename patterns
-    # Can be extended to support more agent types
-    filename = os.path.basename(model_path).lower()
-
-    if "q_table" in filename or "q_learning" in filename:
-        return QLearningAgent
-
-    # Default to Q-Learning agent
-    print(
-        f"Warning: Could not infer agent type from '{model_path}', defaulting to QLearningAgent"
-    )
-    return QLearningAgent
-
-
 def evaluate(
-    agent_class: AgentClass | None = None,
-    model_path: str = "models/q_table_final.pkl",
-    agent_kwargs: dict[str, Any] | None = None,
+    agent: BaseAgent,
+    env: SnakeEnv,
     num_episodes: int | None = None,
     render: bool | None = None,
-) -> EvalResults | None:
+) -> EvalResults:
     """
-    Evaluate trained agent (works with any agent class).
+    Evaluate an agent on the environment.
 
     Args:
-        agent_class: Agent class to use (if None, will infer from model_path)
-        model_path: Path to saved model
-        agent_kwargs: Dict of kwargs to pass to agent constructor (optional)
+        agent: Instantiated agent to evaluate
+        env: Environment instance to evaluate on
         num_episodes: Number of episodes to evaluate (default from config)
         render: Whether to render episodes (default from config)
+
+    Returns:
+        Dictionary containing evaluation metrics
     """
     if num_episodes is None:
         num_episodes = config.evaluation.num_episodes
@@ -67,41 +39,6 @@ def evaluate(
     print("=" * 50)
     print("Snake Agent Evaluation")
     print("=" * 50)
-
-    # Check if model exists
-    if not os.path.exists(model_path):
-        print(f"Error: Model not found at {model_path}")
-        print("Please train a model first using train.py")
-        return
-
-    # Initialize environment
-    env = SnakeEnv(
-        grid_size=config.environment.grid_size,
-        max_steps=config.environment.max_steps_per_episode,
-        seed=config.random_seed,
-    )
-
-    # Infer agent class from model path if not provided
-    if agent_class is None:
-        agent_class = _infer_agent_class(model_path)
-        print(f"Inferred agent class: {agent_class.__name__}")
-
-    # Initialize agent with default or provided kwargs
-    if agent_kwargs is None:
-        agent_kwargs = {}
-
-    # Add common parameters if not already specified
-    if "action_size" not in agent_kwargs:
-        agent_kwargs["action_size"] = env.action_space
-    if "epsilon" not in agent_kwargs:
-        agent_kwargs["epsilon"] = 0.0  # Pure exploitation during evaluation
-    if "seed" not in agent_kwargs:
-        agent_kwargs["seed"] = config.random_seed
-
-    agent = agent_class(**agent_kwargs)
-
-    # Load trained model
-    agent.load(model_path)
 
     # Evaluation metrics
     episode_rewards = []
@@ -174,53 +111,38 @@ def evaluate(
     return results
 
 
-def evaluate_with_render(
-    agent_class: AgentClass | None = None,
-    model_path: str = "models/q_table_final.pkl",
-    agent_kwargs: dict[str, Any] | None = None,
-    num_episodes: int = 5,
-) -> EvalResults | None:
-    """Evaluate and render a few episodes."""
-    print("\nEvaluating with visualization...")
-    return evaluate(
-        agent_class=agent_class,
-        model_path=model_path,
-        agent_kwargs=agent_kwargs,
-        num_episodes=num_episodes,
-        render=True,
-    )
-
-
 if __name__ == "__main__":
+    import os
     import sys
+
+    from agent import QLearningAgent, RandomAgent
 
     # Parse command line arguments
     model_path = "models/q_table_final.pkl"
-    agent_class = None  # Will be inferred from model path
-    agent_kwargs = None
 
-    if len(sys.argv) > 1:
-        model_path = sys.argv[1]
+    # Initialize environment
+    env = SnakeEnv(
+        grid_size=config.environment.grid_size,
+        max_steps=config.environment.max_steps_per_episode,
+        seed=config.random_seed,
+    )
 
-    # Optional: Explicitly specify agent class via command line
-    # Example: python evaluate.py models/dqn_final.pkl --agent DQNAgent
-    if len(sys.argv) > 3 and sys.argv[2] == "--agent":
-        agent_name = sys.argv[3]
-        # Dynamically import agent class
-        import agent
+    # Random
+    agent = RandomAgent(action_space=env.action_space)
 
-        agent_class = getattr(agent, agent_name)
+    # # Q-Learning
+    # agent = QLearningAgent(
+    #     action_size=env.action_space,
+    #     epsilon=0.0,  # Pure exploitation during evaluation
+    #     seed=config.random_seed,
+    # )
+    # agent.load(model_path)
 
     # Run evaluation
-    evaluate(agent_class=agent_class, model_path=model_path, agent_kwargs=agent_kwargs)
+    evaluate(agent=agent, env=env)
 
     # Ask if user wants to see rendered episodes
     response = input("\nWould you like to watch the agent play? (y/n): ")
     if response.lower() == "y":
         num_episodes = int(input("How many episodes to watch? (default 5): ") or "5")
-        evaluate_with_render(
-            agent_class=agent_class,
-            model_path=model_path,
-            agent_kwargs=agent_kwargs,
-            num_episodes=num_episodes,
-        )
+        evaluate(agent=agent, env=env, num_episodes=num_episodes, render=True)

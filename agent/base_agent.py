@@ -32,47 +32,6 @@ class BaseAgent(ABC):
         pass
 
     @abstractmethod
-    def update(
-        self,
-        state: NDArray[np.int8],
-        action: int,
-        reward: float,
-        next_state: NDArray[np.int8],
-        done: bool,
-    ) -> None:
-        """
-        Update the agent's policy based on experience.
-
-        Args:
-            state: Current state
-            action: Action taken
-            reward: Reward received
-            next_state: Next state
-            done: Whether episode is finished
-        """
-        pass
-
-    @abstractmethod
-    def save(self, filepath: str) -> None:
-        """
-        Save the agent's model to a file.
-
-        Args:
-            filepath: Path to save the model
-        """
-        pass
-
-    @abstractmethod
-    def load(self, filepath: str) -> None:
-        """
-        Load the agent's model from a file.
-
-        Args:
-            filepath: Path to load the model from
-        """
-        pass
-
-    @abstractmethod
     def train(
         self,
         env: "SnakeEnv",
