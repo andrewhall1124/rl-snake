@@ -4,14 +4,19 @@ Evaluation script for trained Snake agents (agent-agnostic).
 
 import os
 import time
+from typing import Any
 
 import numpy as np
 
-import config
+from agent import BaseAgent
+from config import config
 from environment import SnakeEnv
 
+AgentClass = type[BaseAgent]
+EvalResults = dict[str, float]
 
-def _infer_agent_class(model_path):
+
+def _infer_agent_class(model_path: str) -> AgentClass:
     """
     Infer agent class from model path filename.
 
@@ -38,12 +43,12 @@ def _infer_agent_class(model_path):
 
 
 def evaluate(
-    agent_class=None,
-    model_path="models/q_table_final.pkl",
-    agent_kwargs=None,
-    num_episodes=None,
-    render=None,
-):
+    agent_class: AgentClass | None = None,
+    model_path: str = "models/q_table_final.pkl",
+    agent_kwargs: dict[str, Any] | None = None,
+    num_episodes: int | None = None,
+    render: bool | None = None,
+) -> EvalResults | None:
     """
     Evaluate trained agent (works with any agent class).
 
@@ -55,9 +60,9 @@ def evaluate(
         render: Whether to render episodes (default from config)
     """
     if num_episodes is None:
-        num_episodes = config.EVAL_EPISODES
+        num_episodes = config.evaluation.num_episodes
     if render is None:
-        render = config.RENDER_EVAL
+        render = config.evaluation.render
 
     print("=" * 50)
     print("Snake Agent Evaluation")
@@ -71,9 +76,9 @@ def evaluate(
 
     # Initialize environment
     env = SnakeEnv(
-        grid_size=config.GRID_SIZE,
-        max_steps=config.MAX_STEPS_PER_EPISODE,
-        seed=config.RANDOM_SEED,
+        grid_size=config.environment.grid_size,
+        max_steps=config.environment.max_steps_per_episode,
+        seed=config.random_seed,
     )
 
     # Infer agent class from model path if not provided
@@ -91,7 +96,7 @@ def evaluate(
     if "epsilon" not in agent_kwargs:
         agent_kwargs["epsilon"] = 0.0  # Pure exploitation during evaluation
     if "seed" not in agent_kwargs:
-        agent_kwargs["seed"] = config.RANDOM_SEED
+        agent_kwargs["seed"] = config.random_seed
 
     agent = agent_class(**agent_kwargs)
 
@@ -159,24 +164,25 @@ def evaluate(
     print(f"Min Score: {np.min(episode_scores):.0f}")
     print("=" * 50)
 
-    return {
-        "avg_reward": np.mean(episode_rewards),
-        "avg_length": np.mean(episode_lengths),
-        "avg_score": np.mean(episode_scores),
-        "max_score": np.max(episode_scores),
-        "min_score": np.min(episode_scores),
+    results: EvalResults = {
+        "avg_reward": float(np.mean(episode_rewards)),
+        "avg_length": float(np.mean(episode_lengths)),
+        "avg_score": float(np.mean(episode_scores)),
+        "max_score": float(np.max(episode_scores)),
+        "min_score": float(np.min(episode_scores)),
     }
+    return results
 
 
 def evaluate_with_render(
-    agent_class=None,
-    model_path="models/q_table_final.pkl",
-    agent_kwargs=None,
-    num_episodes=5,
-):
+    agent_class: AgentClass | None = None,
+    model_path: str = "models/q_table_final.pkl",
+    agent_kwargs: dict[str, Any] | None = None,
+    num_episodes: int = 5,
+) -> EvalResults | None:
     """Evaluate and render a few episodes."""
     print("\nEvaluating with visualization...")
-    evaluate(
+    return evaluate(
         agent_class=agent_class,
         model_path=model_path,
         agent_kwargs=agent_kwargs,

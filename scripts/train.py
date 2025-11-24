@@ -2,40 +2,40 @@
 Training script for Snake Q-Learning agent.
 """
 
-import config
 from agent import QLearningAgent
+from config import config
 from environment import SnakeEnv
 
 
-def main():
+def main() -> None:
     """Main training entry point."""
-    print(f"Grid Size: {config.GRID_SIZE}x{config.GRID_SIZE}")
-    print(f"Max Steps per Episode: {config.MAX_STEPS_PER_EPISODE}")
+    print(f"Grid Size: {config.environment.grid_size}x{config.environment.grid_size}")
+    print(f"Max Steps per Episode: {config.environment.max_steps_per_episode}")
     print()
 
     # Initialize environment and agent
     env = SnakeEnv(
-        grid_size=config.GRID_SIZE,
-        max_steps=config.MAX_STEPS_PER_EPISODE,
-        seed=config.RANDOM_SEED,
+        grid_size=config.environment.grid_size,
+        max_steps=config.environment.max_steps_per_episode,
+        seed=config.random_seed,
     )
 
     agent = QLearningAgent(
         action_size=env.action_space,
-        learning_rate=config.LEARNING_RATE,
-        discount_factor=config.DISCOUNT_FACTOR,
-        epsilon=config.EPSILON_START,
-        epsilon_decay=config.EPSILON_DECAY,
-        epsilon_min=config.EPSILON_MIN,
-        seed=config.RANDOM_SEED,
+        learning_rate=config.agent.learning_rate,
+        discount_factor=config.agent.discount_factor,
+        epsilon=config.agent.epsilon_start,
+        epsilon_decay=config.agent.epsilon_decay,
+        epsilon_min=config.agent.epsilon_min,
+        seed=config.random_seed,
     )
 
     # Train the agent
     agent.train(
         env=env,
-        num_episodes=config.NUM_EPISODES,
-        save_interval=config.SAVE_INTERVAL,
-        model_dir=config.MODEL_DIR,
+        num_episodes=config.training.num_episodes,
+        save_interval=config.training.save_interval,
+        model_dir=config.logging.model_dir,
     )
 
 

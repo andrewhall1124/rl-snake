@@ -1,24 +1,35 @@
 import os
 import pickle
 from collections import defaultdict, deque
+from typing import TYPE_CHECKING, TypeAlias
 
 import numpy as np
+from numpy.typing import NDArray
 from tqdm import tqdm
 
+from agent.base_agent import BaseAgent
 
-class QLearningAgent:
+if TYPE_CHECKING:
+    from environment.snake_env import SnakeEnv
+
+QTable: TypeAlias = defaultdict[tuple[int, ...], NDArray[np.float64]]
+TrainingMetrics: TypeAlias = dict[str, list[float]]
+AgentStats: TypeAlias = dict[str, int | float]
+
+
+class QLearningAgent(BaseAgent):
     """Q-learning agent with epsilon-greedy exploration."""
 
     def __init__(
         self,
-        action_size,
-        learning_rate=0.1,
-        discount_factor=0.95,
-        epsilon=1.0,
-        epsilon_decay=0.995,
-        epsilon_min=0.01,
-        seed=None,
-    ):
+        action_size: int,
+        learning_rate: float = 0.1,
+        discount_factor: float = 0.95,
+        epsilon: float = 1.0,
+        epsilon_decay: float = 0.995,
+        epsilon_min: float = 0.01,
+        seed: int | None = None,
+    ) -> None:
         """
         Initialize Q-learning agent.
 
@@ -31,20 +42,20 @@ class QLearningAgent:
             epsilon_min: Minimum epsilon value
             seed: Random seed for reproducibility
         """
-        self.action_size = action_size
-        self.learning_rate = learning_rate
-        self.discount_factor = discount_factor
-        self.epsilon = epsilon
-        self.epsilon_decay = epsilon_decay
-        self.epsilon_min = epsilon_min
+        self.action_size: int = action_size
+        self.learning_rate: float = learning_rate
+        self.discount_factor: float = discount_factor
+        self.epsilon: float = epsilon
+        self.epsilon_decay: float = epsilon_decay
+        self.epsilon_min: float = epsilon_min
 
         # Q-table: dictionary mapping state tuples to action values
         # Using defaultdict to initialize unseen states to zeros
-        self.q_table = defaultdict(lambda: np.zeros(action_size))
+        self.q_table: QTable = defaultdict(lambda: np.zeros(action_size))
 
-        self.rng = np.random.RandomState(seed)
+        self.rng: np.random.RandomState = np.random.RandomState(seed)
 
-    def get_action(self, state, training=True):
+    def get_action(self, state: NDArray[np.int8], training: bool = True) -> int:
         """
         Select action using epsilon-greedy policy.
 
@@ -65,7 +76,14 @@ class QLearningAgent:
             q_values = self.q_table[state_tuple]
             return np.argmax(q_values)
 
-    def update(self, state, action, reward, next_state, done):
+    def update(
+        self,
+        state: NDArray[np.int8],
+        action: int,
+        reward: float,
+        next_state: NDArray[np.int8],
+        done: bool,
+    ) -> None:
         """
         Update Q-table using Q-learning update rule.
 
@@ -96,11 +114,11 @@ class QLearningAgent:
             target_q - current_q
         )
 
-    def decay_epsilon(self):
+    def decay_epsilon(self) -> None:
         """Decay epsilon after each episode."""
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
-    def save(self, filepath):
+    def save(self, filepath: str) -> None:
         """Save Q-table to file."""
         # Convert defaultdict to regular dict for pickling
         q_table_dict = dict(self.q_table)
@@ -116,7 +134,7 @@ class QLearningAgent:
         with open(filepath, "wb") as f:
             pickle.dump(save_data, f)
 
-    def load(self, filepath):
+    def load(self, filepath: str) -> None:
         """Load Q-table from file."""
         with open(filepath, "rb") as f:
             save_data = pickle.load(f)
@@ -135,11 +153,17 @@ class QLearningAgent:
         print(f"Q-table loaded from {filepath}")
         print(f"Number of states in Q-table: {len(self.q_table)}")
 
-    def get_stats(self):
+    def get_stats(self) -> AgentStats:
         """Get statistics about the Q-table."""
         return {"num_states": len(self.q_table), "epsilon": self.epsilon}
 
-    def train(self, env, num_episodes, save_interval=100, model_dir="models"):
+    def train(
+        self,
+        env: "SnakeEnv",
+        num_episodes: int,
+        save_interval: int = 100,
+        model_dir: str = "models",
+    ) -> TrainingMetrics:
         """
         Train the agent on the given environment.
 

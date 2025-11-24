@@ -1,10 +1,18 @@
 from collections import deque
-from enum import Enum
+from enum import IntEnum
+from typing import TypeAlias
 
 import numpy as np
+from numpy.typing import NDArray
+
+Position: TypeAlias = tuple[int, int]
+State: TypeAlias = NDArray[np.int8]
+StepResult: TypeAlias = tuple[State, float, bool, dict[str, int]]
 
 
-class Direction(Enum):
+class Direction(IntEnum):
+    """Snake movement directions."""
+
     UP = 0
     RIGHT = 1
     DOWN = 2
@@ -14,7 +22,9 @@ class Direction(Enum):
 class SnakeEnv:
     """Snake environment with gym-style interface for Q-learning."""
 
-    def __init__(self, grid_size=10, max_steps=1000, seed=None):
+    def __init__(
+        self, grid_size: int = 10, max_steps: int = 1000, seed: int | None = None
+    ) -> None:
         """
         Initialize Snake environment.
 
@@ -23,23 +33,23 @@ class SnakeEnv:
             max_steps: Maximum steps per episode to prevent infinite loops
             seed: Random seed for reproducibility
         """
-        self.grid_size = grid_size
-        self.max_steps = max_steps
-        self.rng = np.random.RandomState(seed)
+        self.grid_size: int = grid_size
+        self.max_steps: int = max_steps
+        self.rng: np.random.RandomState = np.random.RandomState(seed)
 
         # Game state
-        self.snake = None
-        self.direction = None
-        self.food = None
-        self.steps = 0
-        self.score = 0
+        self.snake: deque[Position] | None = None
+        self.direction: Direction | None = None
+        self.food: Position | None = None
+        self.steps: int = 0
+        self.score: int = 0
 
         # Action mapping: relative to current direction
         # 0 = straight, 1 = left turn, 2 = right turn
-        self.action_space = 3
-        self.state_size = 11  # Feature vector size
+        self.action_space: int = 3
+        self.state_size: int = 11  # Feature vector size
 
-    def reset(self):
+    def reset(self) -> State:
         """Reset the environment to initial state."""
         # Initialize snake in the middle, length 3
         middle = self.grid_size // 2
@@ -55,7 +65,7 @@ class SnakeEnv:
 
         return self._get_state()
 
-    def _place_food(self):
+    def _place_food(self) -> None:
         """Place food at random empty position."""
         while True:
             food = (
@@ -66,7 +76,7 @@ class SnakeEnv:
                 self.food = food
                 break
 
-    def step(self, action):
+    def step(self, action: int) -> StepResult:
         """
         Execute one step in the environment.
 
@@ -131,7 +141,7 @@ class SnakeEnv:
 
         return state, reward, done, info
 
-    def _get_new_direction(self, action):
+    def _get_new_direction(self, action: int) -> Direction:
         """Convert relative action to absolute direction."""
         if action == 0:  # Straight
             return self.direction
@@ -140,7 +150,7 @@ class SnakeEnv:
         else:  # Right turn (action == 2)
             return Direction((self.direction.value + 1) % 4)
 
-    def _get_direction_delta(self, direction):
+    def _get_direction_delta(self, direction: Direction) -> Position:
         """Get (row, col) delta for a direction."""
         deltas = {
             Direction.UP: (-1, 0),
@@ -150,7 +160,7 @@ class SnakeEnv:
         }
         return deltas[direction]
 
-    def _get_state(self):
+    def _get_state(self) -> State:
         """
         Get current state as 11-dimensional feature vector.
 
@@ -197,7 +207,7 @@ class SnakeEnv:
 
         return state
 
-    def _is_danger(self, relative_action):
+    def _is_danger(self, relative_action: int) -> int:
         """Check if there's danger in a direction (relative action)."""
         test_direction = self._get_new_direction(relative_action)
         head = self.snake[0]
@@ -219,7 +229,7 @@ class SnakeEnv:
 
         return 0
 
-    def render(self, mode="human"):
+    def render(self, mode: str = "human") -> None:
         """Render the environment (text-based)."""
         if mode != "human":
             return

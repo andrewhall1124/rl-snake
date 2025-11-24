@@ -3,29 +3,64 @@ Configuration file for Snake Q-Learning project.
 Centralized hyperparameters and settings.
 """
 
-# Environment settings
-GRID_SIZE = 10
-MAX_STEPS_PER_EPISODE = 1000
+from dataclasses import dataclass
 
-# Agent hyperparameters
-LEARNING_RATE = 0.1  # Alpha: how much to update Q-values
-DISCOUNT_FACTOR = 0.95  # Gamma: importance of future rewards
-EPSILON_START = 1.0  # Initial exploration rate
-EPSILON_DECAY = 0.995  # Decay rate per episode
-EPSILON_MIN = 0.01  # Minimum exploration rate
 
-# Training settings
-NUM_EPISODES = 5000
-PRINT_INTERVAL = 100  # Print progress every N episodes
-SAVE_INTERVAL = 500  # Save Q-table every N episodes
+@dataclass(frozen=True)
+class EnvironmentConfig:
+    """Environment configuration settings."""
 
-# Logging
-LOG_DIR = "logs"
-MODEL_DIR = "models"
+    grid_size: int = 10
+    max_steps_per_episode: int = 1000
 
-# Random seed for reproducibility
-RANDOM_SEED = 42
 
-# Evaluation settings
-EVAL_EPISODES = 100  # Number of episodes to run during evaluation
-RENDER_EVAL = False  # Whether to render during evaluation
+@dataclass(frozen=True)
+class AgentConfig:
+    """Agent hyperparameters."""
+
+    learning_rate: float = 0.1  # Alpha: how much to update Q-values
+    discount_factor: float = 0.95  # Gamma: importance of future rewards
+    epsilon_start: float = 1.0  # Initial exploration rate
+    epsilon_decay: float = 0.995  # Decay rate per episode
+    epsilon_min: float = 0.01  # Minimum exploration rate
+
+
+@dataclass(frozen=True)
+class TrainingConfig:
+    """Training settings."""
+
+    num_episodes: int = 5000
+    print_interval: int = 100  # Print progress every N episodes
+    save_interval: int = 500  # Save Q-table every N episodes
+
+
+@dataclass(frozen=True)
+class LoggingConfig:
+    """Logging settings."""
+
+    log_dir: str = "logs"
+    model_dir: str = "models"
+
+
+@dataclass(frozen=True)
+class EvaluationConfig:
+    """Evaluation settings."""
+
+    num_episodes: int = 100  # Number of episodes to run during evaluation
+    render: bool = False  # Whether to render during evaluation
+
+
+@dataclass(frozen=True)
+class Config:
+    """Main configuration dataclass."""
+
+    environment: EnvironmentConfig = EnvironmentConfig()
+    agent: AgentConfig = AgentConfig()
+    training: TrainingConfig = TrainingConfig()
+    logging: LoggingConfig = LoggingConfig()
+    evaluation: EvaluationConfig = EvaluationConfig()
+    random_seed: int = 42
+
+
+# Default configuration instance
+config = Config()
