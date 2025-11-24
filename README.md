@@ -9,6 +9,13 @@
 uv sync
 ```
 
+3. Install prek(pre-commit):
+
+```bash
+uv tool install prek
+prek install
+```
+
 ## Usage
 
 ### Q-Learning
