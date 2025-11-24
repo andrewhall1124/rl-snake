@@ -2,7 +2,7 @@
 Training script for Snake Q-Learning agent.
 """
 
-from agent import QLearningAgent
+from agent.q_learning_agent import QLearningAgent
 from config import config
 from environment import SnakeEnv
 
