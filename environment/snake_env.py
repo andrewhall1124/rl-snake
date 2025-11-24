@@ -1,6 +1,7 @@
-import numpy as np
 from collections import deque
 from enum import Enum
+
+import numpy as np
 
 
 class Direction(Enum):
@@ -42,11 +43,9 @@ class SnakeEnv:
         """Reset the environment to initial state."""
         # Initialize snake in the middle, length 3
         middle = self.grid_size // 2
-        self.snake = deque([
-            (middle, middle),
-            (middle, middle + 1),
-            (middle, middle + 2)
-        ])
+        self.snake = deque(
+            [(middle, middle), (middle, middle + 1), (middle, middle + 2)]
+        )
         self.direction = Direction.LEFT
         self.steps = 0
         self.score = 0
@@ -61,7 +60,7 @@ class SnakeEnv:
         while True:
             food = (
                 self.rng.randint(0, self.grid_size),
-                self.rng.randint(0, self.grid_size)
+                self.rng.randint(0, self.grid_size),
             )
             if food not in self.snake:
                 self.food = food
@@ -95,17 +94,21 @@ class SnakeEnv:
         reward = -0.01  # Small penalty per step
 
         # Wall collision
-        if (new_head[0] < 0 or new_head[0] >= self.grid_size or
-            new_head[1] < 0 or new_head[1] >= self.grid_size):
+        if (
+            new_head[0] < 0
+            or new_head[0] >= self.grid_size
+            or new_head[1] < 0
+            or new_head[1] >= self.grid_size
+        ):
             done = True
             reward = -10
-            return self._get_state(), reward, done, {'score': self.score}
+            return self._get_state(), reward, done, {"score": self.score}
 
         # Self collision
         if new_head in self.snake:
             done = True
             reward = -10
-            return self._get_state(), reward, done, {'score': self.score}
+            return self._get_state(), reward, done, {"score": self.score}
 
         # Move snake
         self.snake.appendleft(new_head)
@@ -124,7 +127,7 @@ class SnakeEnv:
             done = True
 
         state = self._get_state()
-        info = {'score': self.score}
+        info = {"score": self.score}
 
         return state, reward, done, info
 
@@ -143,7 +146,7 @@ class SnakeEnv:
             Direction.UP: (-1, 0),
             Direction.RIGHT: (0, 1),
             Direction.DOWN: (1, 0),
-            Direction.LEFT: (0, -1)
+            Direction.LEFT: (0, -1),
         }
         return deltas[direction]
 
@@ -175,11 +178,22 @@ class SnakeEnv:
         dir_down = int(self.direction == Direction.DOWN)
         dir_left = int(self.direction == Direction.LEFT)
 
-        state = np.array([
-            food_up, food_down, food_left, food_right,
-            danger_straight, danger_left, danger_right,
-            dir_up, dir_right, dir_down, dir_left
-        ], dtype=np.int8)
+        state = np.array(
+            [
+                food_up,
+                food_down,
+                food_left,
+                food_right,
+                danger_straight,
+                danger_left,
+                danger_right,
+                dir_up,
+                dir_right,
+                dir_down,
+                dir_left,
+            ],
+            dtype=np.int8,
+        )
 
         return state
 
@@ -191,8 +205,12 @@ class SnakeEnv:
         test_pos = (head[0] + delta[0], head[1] + delta[1])
 
         # Check wall collision
-        if (test_pos[0] < 0 or test_pos[0] >= self.grid_size or
-            test_pos[1] < 0 or test_pos[1] >= self.grid_size):
+        if (
+            test_pos[0] < 0
+            or test_pos[0] >= self.grid_size
+            or test_pos[1] < 0
+            or test_pos[1] >= self.grid_size
+        ):
             return 1
 
         # Check self collision
@@ -201,26 +219,26 @@ class SnakeEnv:
 
         return 0
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         """Render the environment (text-based)."""
-        if mode != 'human':
+        if mode != "human":
             return
 
-        grid = [[' ' for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        grid = [[" " for _ in range(self.grid_size)] for _ in range(self.grid_size)]
 
         # Place snake
         for i, segment in enumerate(self.snake):
             if i == 0:
-                grid[segment[0]][segment[1]] = 'H'  # Head
+                grid[segment[0]][segment[1]] = "H"  # Head
             else:
-                grid[segment[0]][segment[1]] = 'o'  # Body
+                grid[segment[0]][segment[1]] = "o"  # Body
 
         # Place food
-        grid[self.food[0]][self.food[1]] = 'F'
+        grid[self.food[0]][self.food[1]] = "F"
 
         # Print grid
-        print('\n' + '=' * (self.grid_size * 2 + 1))
+        print("\n" + "=" * (self.grid_size * 2 + 1))
         for row in grid:
-            print('|' + '|'.join(row) + '|')
-        print('=' * (self.grid_size * 2 + 1))
-        print(f'Score: {self.score} | Steps: {self.steps}')
+            print("|" + "|".join(row) + "|")
+        print("=" * (self.grid_size * 2 + 1))
+        print(f"Score: {self.score} | Steps: {self.steps}")

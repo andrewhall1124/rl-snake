@@ -3,11 +3,12 @@ Evaluation script for trained Snake agents (agent-agnostic).
 """
 
 import os
-import numpy as np
 import time
 
-from environment import SnakeEnv
+import numpy as np
+
 import config
+from environment import SnakeEnv
 
 
 def _infer_agent_class(model_path):
@@ -26,16 +27,23 @@ def _infer_agent_class(model_path):
     # Can be extended to support more agent types
     filename = os.path.basename(model_path).lower()
 
-    if 'q_table' in filename or 'q_learning' in filename:
+    if "q_table" in filename or "q_learning" in filename:
         return QLearningAgent
 
     # Default to Q-Learning agent
-    print(f"Warning: Could not infer agent type from '{model_path}', defaulting to QLearningAgent")
+    print(
+        f"Warning: Could not infer agent type from '{model_path}', defaulting to QLearningAgent"
+    )
     return QLearningAgent
 
 
-def evaluate(agent_class=None, model_path='models/q_table_final.pkl',
-             agent_kwargs=None, num_episodes=None, render=None):
+def evaluate(
+    agent_class=None,
+    model_path="models/q_table_final.pkl",
+    agent_kwargs=None,
+    num_episodes=None,
+    render=None,
+):
     """
     Evaluate trained agent (works with any agent class).
 
@@ -65,7 +73,7 @@ def evaluate(agent_class=None, model_path='models/q_table_final.pkl',
     env = SnakeEnv(
         grid_size=config.GRID_SIZE,
         max_steps=config.MAX_STEPS_PER_EPISODE,
-        seed=config.RANDOM_SEED
+        seed=config.RANDOM_SEED,
     )
 
     # Infer agent class from model path if not provided
@@ -78,12 +86,12 @@ def evaluate(agent_class=None, model_path='models/q_table_final.pkl',
         agent_kwargs = {}
 
     # Add common parameters if not already specified
-    if 'action_size' not in agent_kwargs:
-        agent_kwargs['action_size'] = env.action_space
-    if 'epsilon' not in agent_kwargs:
-        agent_kwargs['epsilon'] = 0.0  # Pure exploitation during evaluation
-    if 'seed' not in agent_kwargs:
-        agent_kwargs['seed'] = config.RANDOM_SEED
+    if "action_size" not in agent_kwargs:
+        agent_kwargs["action_size"] = env.action_space
+    if "epsilon" not in agent_kwargs:
+        agent_kwargs["epsilon"] = 0.0  # Pure exploitation during evaluation
+    if "seed" not in agent_kwargs:
+        agent_kwargs["seed"] = config.RANDOM_SEED
 
     agent = agent_class(**agent_kwargs)
 
@@ -125,46 +133,63 @@ def evaluate(agent_class=None, model_path='models/q_table_final.pkl',
         # Store metrics
         episode_rewards.append(total_reward)
         episode_lengths.append(steps)
-        episode_scores.append(info['score'])
+        episode_scores.append(info["score"])
 
         if episode % 10 == 0 or render:
-            print(f"Episode {episode}: Score = {info['score']}, "
-                  f"Reward = {total_reward:.2f}, Steps = {steps}")
+            print(
+                f"Episode {episode}: Score = {info['score']}, "
+                f"Reward = {total_reward:.2f}, Steps = {steps}"
+            )
 
     # Print statistics
     print("\n" + "=" * 50)
     print("Evaluation Results")
     print("=" * 50)
     print(f"Episodes: {num_episodes}")
-    print(f"Average Reward: {np.mean(episode_rewards):.2f} ± {np.std(episode_rewards):.2f}")
-    print(f"Average Length: {np.mean(episode_lengths):.1f} ± {np.std(episode_lengths):.1f}")
-    print(f"Average Score: {np.mean(episode_scores):.2f} ± {np.std(episode_scores):.2f}")
+    print(
+        f"Average Reward: {np.mean(episode_rewards):.2f} ± {np.std(episode_rewards):.2f}"
+    )
+    print(
+        f"Average Length: {np.mean(episode_lengths):.1f} ± {np.std(episode_lengths):.1f}"
+    )
+    print(
+        f"Average Score: {np.mean(episode_scores):.2f} ± {np.std(episode_scores):.2f}"
+    )
     print(f"Max Score: {np.max(episode_scores):.0f}")
     print(f"Min Score: {np.min(episode_scores):.0f}")
     print("=" * 50)
 
     return {
-        'avg_reward': np.mean(episode_rewards),
-        'avg_length': np.mean(episode_lengths),
-        'avg_score': np.mean(episode_scores),
-        'max_score': np.max(episode_scores),
-        'min_score': np.min(episode_scores)
+        "avg_reward": np.mean(episode_rewards),
+        "avg_length": np.mean(episode_lengths),
+        "avg_score": np.mean(episode_scores),
+        "max_score": np.max(episode_scores),
+        "min_score": np.min(episode_scores),
     }
 
 
-def evaluate_with_render(agent_class=None, model_path='models/q_table_final.pkl',
-                        agent_kwargs=None, num_episodes=5):
+def evaluate_with_render(
+    agent_class=None,
+    model_path="models/q_table_final.pkl",
+    agent_kwargs=None,
+    num_episodes=5,
+):
     """Evaluate and render a few episodes."""
     print("\nEvaluating with visualization...")
-    evaluate(agent_class=agent_class, model_path=model_path,
-             agent_kwargs=agent_kwargs, num_episodes=num_episodes, render=True)
+    evaluate(
+        agent_class=agent_class,
+        model_path=model_path,
+        agent_kwargs=agent_kwargs,
+        num_episodes=num_episodes,
+        render=True,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
 
     # Parse command line arguments
-    model_path = 'models/q_table_final.pkl'
+    model_path = "models/q_table_final.pkl"
     agent_class = None  # Will be inferred from model path
     agent_kwargs = None
 
@@ -173,10 +198,11 @@ if __name__ == '__main__':
 
     # Optional: Explicitly specify agent class via command line
     # Example: python evaluate.py models/dqn_final.pkl --agent DQNAgent
-    if len(sys.argv) > 3 and sys.argv[2] == '--agent':
+    if len(sys.argv) > 3 and sys.argv[2] == "--agent":
         agent_name = sys.argv[3]
         # Dynamically import agent class
         import agent
+
         agent_class = getattr(agent, agent_name)
 
     # Run evaluation
@@ -184,7 +210,11 @@ if __name__ == '__main__':
 
     # Ask if user wants to see rendered episodes
     response = input("\nWould you like to watch the agent play? (y/n): ")
-    if response.lower() == 'y':
+    if response.lower() == "y":
         num_episodes = int(input("How many episodes to watch? (default 5): ") or "5")
-        evaluate_with_render(agent_class=agent_class, model_path=model_path,
-                           agent_kwargs=agent_kwargs, num_episodes=num_episodes)
+        evaluate_with_render(
+            agent_class=agent_class,
+            model_path=model_path,
+            agent_kwargs=agent_kwargs,
+            num_episodes=num_episodes,
+        )

@@ -2,9 +2,9 @@
 Training script for Snake Q-Learning agent.
 """
 
-from environment import SnakeEnv
-from agent import QLearningAgent
 import config
+from agent import QLearningAgent
+from environment import SnakeEnv
 
 
 def main():
@@ -17,7 +17,7 @@ def main():
     env = SnakeEnv(
         grid_size=config.GRID_SIZE,
         max_steps=config.MAX_STEPS_PER_EPISODE,
-        seed=config.RANDOM_SEED
+        seed=config.RANDOM_SEED,
     )
 
     agent = QLearningAgent(
@@ -27,7 +27,7 @@ def main():
         epsilon=config.EPSILON_START,
         epsilon_decay=config.EPSILON_DECAY,
         epsilon_min=config.EPSILON_MIN,
-        seed=config.RANDOM_SEED
+        seed=config.RANDOM_SEED,
     )
 
     # Train the agent
@@ -35,9 +35,9 @@ def main():
         env=env,
         num_episodes=config.NUM_EPISODES,
         save_interval=config.SAVE_INTERVAL,
-        model_dir=config.MODEL_DIR
+        model_dir=config.MODEL_DIR,
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

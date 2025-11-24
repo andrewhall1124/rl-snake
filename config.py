@@ -20,8 +20,8 @@ PRINT_INTERVAL = 100  # Print progress every N episodes
 SAVE_INTERVAL = 500  # Save Q-table every N episodes
 
 # Logging
-LOG_DIR = 'logs'
-MODEL_DIR = 'models'
+LOG_DIR = "logs"
+MODEL_DIR = "models"
 
 # Random seed for reproducibility
 RANDOM_SEED = 42
