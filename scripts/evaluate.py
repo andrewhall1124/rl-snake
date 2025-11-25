@@ -69,7 +69,7 @@ def evaluate(
             state = next_state
 
             if render:
-                time.sleep(0.2)  # Slow down for viewing
+                time.sleep(0.1)  # Slow down for viewing
                 env.render()
 
         # Store metrics
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     from agent import QLearningAgent, RandomAgent
 
     # Parse command line arguments
-    model_path = "models/q_table_final.pkl"
+    model_path = "models/q_table_episode_10000.pkl"
 
     # Initialize environment
     env = SnakeEnv(
