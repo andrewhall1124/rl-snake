@@ -4,6 +4,8 @@ from typing import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
+from rich.console import Console
+from rich.table import Table
 
 Position: TypeAlias = tuple[int, int]
 State: TypeAlias = NDArray[np.int8]
@@ -230,25 +232,35 @@ class SnakeEnv:
         return 0
 
     def render(self, mode: str = "human") -> None:
-        """Render the environment (text-based)."""
+        """Render the environment with colored output using rich."""
         if mode != "human":
             return
 
-        grid = [[" " for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        console = Console()
 
-        # Place snake
-        for i, segment in enumerate(self.snake):
-            if i == 0:
-                grid[segment[0]][segment[1]] = "H"  # Head
-            else:
-                grid[segment[0]][segment[1]] = "o"  # Body
+        # Build grid as string
+        lines = []
+        for row_idx in range(self.grid_size):
+            row = ""
+            for col_idx in range(self.grid_size):
+                pos = (row_idx, col_idx)
 
-        # Place food
-        grid[self.food[0]][self.food[1]] = "F"
+                if pos == self.snake[0]:
+                    # Snake head - bright green
+                    row += "[bright_green]██[/]"
+                elif pos in self.snake:
+                    # Snake body - green
+                    row += "[green]██[/]"
+                elif pos == self.food:
+                    # Food - red
+                    row += "[red]██[/]"
+                else:
+                    # Empty space
+                    row += "  "
 
-        # Print grid
-        print("\n" + "=" * (self.grid_size * 2 + 1))
-        for row in grid:
-            print("|" + "|".join(row) + "|")
-        print("=" * (self.grid_size * 2 + 1))
-        print(f"Score: {self.score} | Steps: {self.steps}")
+            lines.append(row)
+
+        console.print()
+        for line in lines:
+            console.print(line)
+        console.print(f"Score: {self.score} | Steps: {self.steps}")

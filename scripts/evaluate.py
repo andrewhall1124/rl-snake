@@ -127,16 +127,16 @@ if __name__ == "__main__":
         seed=config.random_seed,
     )
 
-    # Random
-    agent = RandomAgent(action_space=env.action_space)
+    # # Random
+    # agent = RandomAgent(action_space=env.action_space)
 
-    # # Q-Learning
-    # agent = QLearningAgent(
-    #     action_size=env.action_space,
-    #     epsilon=0.0,  # Pure exploitation during evaluation
-    #     seed=config.random_seed,
-    # )
-    # agent.load(model_path)
+    # Q-Learning
+    agent = QLearningAgent(
+        action_size=env.action_space,
+        epsilon=0.0,  # Pure exploitation during evaluation
+        seed=config.random_seed,
+    )
+    agent.load(model_path)
 
     # Run evaluation
     evaluate(agent=agent, env=env)
