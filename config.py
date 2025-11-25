@@ -30,8 +30,7 @@ class TrainingConfig:
     """Training settings."""
 
     num_episodes: int = 10000
-    print_interval: int = num_episodes  # Print progress every N episodes
-    save_interval: int = num_episodes  # Save Q-table every N episodes
+    save_interval: int = 1000  # Save Q-table every N episodes
 
 
 @dataclass(frozen=True)

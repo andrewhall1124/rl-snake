@@ -8,6 +8,7 @@ from numpy.typing import NDArray
 from tqdm import tqdm
 
 from agent.base_agent import BaseAgent
+from environment.snake_env import Direction
 
 if TYPE_CHECKING:
     from environment.snake_env import SnakeEnv
@@ -23,6 +24,7 @@ class QLearningAgent(BaseAgent):
     def __init__(
         self,
         action_size: int,
+        grid_size: int = 10,
         learning_rate: float = 0.1,
         discount_factor: float = 0.95,
         epsilon: float = 1.0,
@@ -35,6 +37,7 @@ class QLearningAgent(BaseAgent):
 
         Args:
             action_size: Number of possible actions
+            grid_size: Size of the game grid (for state conversion)
             learning_rate: Learning rate (alpha)
             discount_factor: Discount factor (gamma)
             epsilon: Initial exploration rate
@@ -43,6 +46,7 @@ class QLearningAgent(BaseAgent):
             seed: Random seed for reproducibility
         """
         self.action_size: int = action_size
+        self.grid_size: int = grid_size
         self.learning_rate: float = learning_rate
         self.discount_factor: float = discount_factor
         self.epsilon: float = epsilon
@@ -55,18 +59,138 @@ class QLearningAgent(BaseAgent):
 
         self.rng: np.random.RandomState = np.random.RandomState(seed)
 
+    def _grid_to_features(self, grid_state: NDArray[np.int8]) -> NDArray[np.int8]:
+        """
+        Convert grid state to feature vector.
+
+        Args:
+            grid_state: Flattened grid state (grid_size * grid_size)
+
+        Returns:
+            11-dimensional feature vector with:
+            - Food direction (4 binary): up, down, left, right
+            - Danger detection (3 binary): straight, left, right
+            - Current direction (4 one-hot): up, right, down, left
+        """
+        # Reshape to 2D grid
+        grid = grid_state.reshape(self.grid_size, self.grid_size)
+
+        # Find positions
+        head_pos = np.where(grid == 2)
+        head = (head_pos[0][0], head_pos[1][0])
+
+        food_pos = np.where(grid == 3)
+        food = (food_pos[0][0], food_pos[1][0])
+
+        snake_positions = set()
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                if grid[i, j] in [1, 2]:  # Body or head
+                    snake_positions.add((i, j))
+
+        # Determine current direction by looking at snake body
+        body_pos = np.where(grid == 1)
+        if len(body_pos[0]) > 0:
+            # Find the closest body segment to head
+            neck = (body_pos[0][0], body_pos[1][0])
+            delta = (head[0] - neck[0], head[1] - neck[1])
+
+            # Map delta to direction
+            if delta == (-1, 0):
+                direction = Direction.UP
+            elif delta == (0, 1):
+                direction = Direction.RIGHT
+            elif delta == (1, 0):
+                direction = Direction.DOWN
+            else:  # (0, -1)
+                direction = Direction.LEFT
+        else:
+            # Default direction if snake has only head
+            direction = Direction.LEFT
+
+        # Food direction (relative to head)
+        food_up = int(food[0] < head[0])
+        food_down = int(food[0] > head[0])
+        food_left = int(food[1] < head[1])
+        food_right = int(food[1] > head[1])
+
+        # Helper function to check danger
+        def is_danger(relative_action: int) -> int:
+            # Convert relative action to new direction
+            if relative_action == 0:  # Straight
+                test_direction = direction
+            elif relative_action == 1:  # Left turn
+                test_direction = Direction((direction.value - 1) % 4)
+            else:  # Right turn (relative_action == 2)
+                test_direction = Direction((direction.value + 1) % 4)
+
+            # Get delta for test direction
+            deltas = {
+                Direction.UP: (-1, 0),
+                Direction.RIGHT: (0, 1),
+                Direction.DOWN: (1, 0),
+                Direction.LEFT: (0, -1),
+            }
+            delta = deltas[test_direction]
+            test_pos = (head[0] + delta[0], head[1] + delta[1])
+
+            # Check wall collision
+            if (
+                test_pos[0] < 0
+                or test_pos[0] >= self.grid_size
+                or test_pos[1] < 0
+                or test_pos[1] >= self.grid_size
+            ):
+                return 1
+
+            # Check self collision
+            if test_pos in snake_positions:
+                return 1
+
+            return 0
+
+        # Danger detection
+        danger_straight = is_danger(0)
+        danger_left = is_danger(1)
+        danger_right = is_danger(2)
+
+        # Current direction (one-hot)
+        dir_up = int(direction == Direction.UP)
+        dir_right = int(direction == Direction.RIGHT)
+        dir_down = int(direction == Direction.DOWN)
+        dir_left = int(direction == Direction.LEFT)
+
+        return np.array(
+            [
+                food_up,
+                food_down,
+                food_left,
+                food_right,
+                danger_straight,
+                danger_left,
+                danger_right,
+                dir_up,
+                dir_right,
+                dir_down,
+                dir_left,
+            ],
+            dtype=np.int8,
+        )
+
     def get_action(self, state: NDArray[np.int8], training: bool = True) -> int:
         """
         Select action using epsilon-greedy policy.
 
         Args:
-            state: Current state (numpy array)
+            state: Current state (grid state from environment)
             training: If True, use epsilon-greedy; if False, use greedy
 
         Returns:
             action: Selected action
         """
-        state_tuple = tuple(state)
+        # Convert grid state to feature vector
+        features = self._grid_to_features(state)
+        state_tuple = tuple(features)
 
         # Epsilon-greedy exploration
         if training and self.rng.random() < self.epsilon:
@@ -90,14 +214,18 @@ class QLearningAgent(BaseAgent):
         Q(s,a) <- Q(s,a) + alpha * [r + gamma * max(Q(s',a')) - Q(s,a)]
 
         Args:
-            state: Current state
+            state: Current state (grid state)
             action: Action taken
             reward: Reward received
-            next_state: Next state
+            next_state: Next state (grid state)
             done: Whether episode is finished
         """
-        state_tuple = tuple(state)
-        next_state_tuple = tuple(next_state)
+        # Convert grid states to feature vectors
+        features = self._grid_to_features(state)
+        next_features = self._grid_to_features(next_state)
+
+        state_tuple = tuple(features)
+        next_state_tuple = tuple(next_features)
 
         # Current Q-value
         current_q = self.q_table[state_tuple][action]

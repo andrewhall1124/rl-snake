@@ -6,7 +6,7 @@ import time
 
 import numpy as np
 
-from agent import BaseAgent
+from agent import BaseAgent, DQNAgent, QLearningAgent
 from config import config
 from environment import SnakeEnv
 
@@ -112,14 +112,6 @@ def evaluate(
 
 
 if __name__ == "__main__":
-    import os
-    import sys
-
-    from agent import QLearningAgent, RandomAgent
-
-    # Parse command line arguments
-    model_path = "models/q_table_episode_10000.pkl"
-
     # Initialize environment
     env = SnakeEnv(
         grid_size=config.environment.grid_size,
@@ -136,7 +128,20 @@ if __name__ == "__main__":
         epsilon=0.0,  # Pure exploitation during evaluation
         seed=config.random_seed,
     )
-    agent.load(model_path)
+    agent.load("models/q_table_final.pkl")
+
+    # # DQN
+    # agent = DQNAgent(
+    #     state_size=env.state_size,
+    #     action_size=env.action_space,
+    #     learning_rate=config.agent.learning_rate,
+    #     discount_factor=config.agent.discount_factor,
+    #     epsilon=config.agent.epsilon_start,
+    #     epsilon_decay=config.agent.epsilon_decay,
+    #     epsilon_min=config.agent.epsilon_min,
+    #     seed=config.random_seed,
+    # )
+    # agent.load('models/dqn_final.pt')
 
     # Run evaluation
     evaluate(agent=agent, env=env)

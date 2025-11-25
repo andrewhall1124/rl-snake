@@ -75,7 +75,6 @@ All hyperparameters are centralized in [config.py](config.py):
 
 ### Training Settings
 - `NUM_EPISODES`: Number of training episodes (default: 5000)
-- `PRINT_INTERVAL`: How often to print progress (default: 100)
 - `SAVE_INTERVAL`: How often to save Q-table (default: 500)
 
 ### Rewards

@@ -2,7 +2,7 @@
 Training script for Snake Q-Learning agent.
 """
 
-from agent import QLearningAgent, RandomAgent
+from agent import DQNAgent, QLearningAgent, RandomAgent
 from config import config
 from environment import SnakeEnv
 
@@ -20,8 +20,10 @@ def main() -> None:
         seed=config.random_seed,
     )
 
+    # Q-Learning
     agent = QLearningAgent(
         action_size=env.action_space,
+        grid_size=config.environment.grid_size,
         learning_rate=config.agent.learning_rate,
         discount_factor=config.agent.discount_factor,
         epsilon=config.agent.epsilon_start,
@@ -29,6 +31,17 @@ def main() -> None:
         epsilon_min=config.agent.epsilon_min,
         seed=config.random_seed,
     )
+
+    # agent = DQNAgent(
+    #     state_size=env.state_size,
+    #     action_size=env.action_space,
+    #     learning_rate=config.agent.learning_rate,
+    #     discount_factor=config.agent.discount_factor,
+    #     epsilon=config.agent.epsilon_start,
+    #     epsilon_decay=config.agent.epsilon_decay,
+    #     epsilon_min=config.agent.epsilon_min,
+    #     seed=config.random_seed,
+    # )
 
     # Train the agent
     agent.train(

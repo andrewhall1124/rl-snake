@@ -3,15 +3,9 @@ Base agent abstract class for reinforcement learning agents.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
-
-if TYPE_CHECKING:
-    from environment.snake_env import SnakeEnv
-
-TrainingMetrics = dict[str, list[float]]
 
 
 class BaseAgent(ABC):
@@ -28,27 +22,5 @@ class BaseAgent(ABC):
 
         Returns:
             Selected action
-        """
-        pass
-
-    @abstractmethod
-    def train(
-        self,
-        env: "SnakeEnv",
-        num_episodes: int,
-        save_interval: int = 100,
-        model_dir: str = "models",
-    ) -> TrainingMetrics:
-        """
-        Train the agent on the given environment.
-
-        Args:
-            env: Environment instance to train on
-            num_episodes: Number of episodes to train
-            save_interval: Interval for saving model checkpoints
-            model_dir: Directory to save model checkpoints
-
-        Returns:
-            Training metrics
         """
         pass

@@ -49,7 +49,7 @@ class SnakeEnv:
         # Action mapping: relative to current direction
         # 0 = straight, 1 = left turn, 2 = right turn
         self.action_space: int = 3
-        self.state_size: int = 11  # Feature vector size
+        self.state_size: int = grid_size * grid_size  # Grid state size
 
     def reset(self) -> State:
         """Reset the environment to initial state."""
@@ -93,17 +93,20 @@ class SnakeEnv:
         """
         self.steps += 1
 
+        # Store previous distance to food for reward shaping
+        head = self.snake[0]
+        prev_distance = abs(head[0] - self.food[0]) + abs(head[1] - self.food[1])
+
         # Convert relative action to new direction
         self.direction = self._get_new_direction(action)
 
         # Calculate new head position
-        head = self.snake[0]
         delta = self._get_direction_delta(self.direction)
         new_head = (head[0] + delta[0], head[1] + delta[1])
 
         # Check collisions
         done = False
-        reward = -0.01  # Small penalty per step
+        reward = 0.0  # Base reward
 
         # Wall collision
         if (
@@ -133,6 +136,15 @@ class SnakeEnv:
         else:
             # Remove tail if no food eaten
             self.snake.pop()
+
+            # Reward shaping: encourage moving toward food
+            new_distance = abs(new_head[0] - self.food[0]) + abs(
+                new_head[1] - self.food[1]
+            )
+            if new_distance < prev_distance:
+                reward = 0.1  # Small reward for getting closer
+            else:
+                reward = -0.1  # Small penalty for getting farther
 
         # Check max steps
         if self.steps >= self.max_steps:
@@ -164,50 +176,30 @@ class SnakeEnv:
 
     def _get_state(self) -> State:
         """
-        Get current state as 11-dimensional feature vector.
+        Get current state as flattened grid.
 
-        Features:
-        - Food direction (4 binary): up, down, left, right
-        - Danger detection (3 binary): straight, left, right
-        - Current direction (4 one-hot): up, right, down, left
+        Grid encoding:
+        - 0: Empty cell
+        - 1: Snake body
+        - 2: Snake head
+        - 3: Food
         """
+        # Initialize empty grid
+        grid = np.zeros((self.grid_size, self.grid_size), dtype=np.int8)
+
+        # Place snake body
+        for pos in list(self.snake)[1:]:
+            grid[pos[0], pos[1]] = 1
+
+        # Place snake head
         head = self.snake[0]
+        grid[head[0], head[1]] = 2
 
-        # Food direction (relative to head)
-        food_up = int(self.food[0] < head[0])
-        food_down = int(self.food[0] > head[0])
-        food_left = int(self.food[1] < head[1])
-        food_right = int(self.food[1] > head[1])
+        # Place food
+        grid[self.food[0], self.food[1]] = 3
 
-        # Danger detection
-        danger_straight = self._is_danger(0)
-        danger_left = self._is_danger(1)
-        danger_right = self._is_danger(2)
-
-        # Current direction (one-hot)
-        dir_up = int(self.direction == Direction.UP)
-        dir_right = int(self.direction == Direction.RIGHT)
-        dir_down = int(self.direction == Direction.DOWN)
-        dir_left = int(self.direction == Direction.LEFT)
-
-        state = np.array(
-            [
-                food_up,
-                food_down,
-                food_left,
-                food_right,
-                danger_straight,
-                danger_left,
-                danger_right,
-                dir_up,
-                dir_right,
-                dir_down,
-                dir_left,
-            ],
-            dtype=np.int8,
-        )
-
-        return state
+        # Flatten and return
+        return grid.flatten()
 
     def _is_danger(self, relative_action: int) -> int:
         """Check if there's danger in a direction (relative action)."""
