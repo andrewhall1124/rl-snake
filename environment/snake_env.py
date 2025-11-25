@@ -237,11 +237,17 @@ class SnakeEnv:
             return
 
         console = Console()
+        console.clear()
 
         # Build grid as string
         lines = []
+
+        # Top border
+        border = "┌" + "─" * (self.grid_size * 2) + "┐"
+        lines.append(border)
+
         for row_idx in range(self.grid_size):
-            row = ""
+            row = "│"
             for col_idx in range(self.grid_size):
                 pos = (row_idx, col_idx)
 
@@ -258,7 +264,12 @@ class SnakeEnv:
                     # Empty space
                     row += "  "
 
+            row += "│"
             lines.append(row)
+
+        # Bottom border
+        border = "└" + "─" * (self.grid_size * 2) + "┘"
+        lines.append(border)
 
         console.print()
         for line in lines:
