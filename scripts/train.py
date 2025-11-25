@@ -3,6 +3,7 @@ Training script for Snake Q-Learning agent.
 """
 
 from agent.q_learning_agent import QLearningAgent
+from agent.sarsa_agent import SARSAAgent
 from config import config
 from environment import SnakeEnv
 
@@ -20,7 +21,17 @@ def main() -> None:
         seed=config.random_seed,
     )
 
-    agent = QLearningAgent(
+    # agent = QLearningAgent(
+    #     action_size=env.action_space,
+    #     learning_rate=config.agent.learning_rate,
+    #     discount_factor=config.agent.discount_factor,
+    #     epsilon=config.agent.epsilon_start,
+    #     epsilon_decay=config.agent.epsilon_decay,
+    #     epsilon_min=config.agent.epsilon_min,
+    #     seed=config.random_seed,
+    # )
+
+    agent = SARSAAgent(
         action_size=env.action_space,
         learning_rate=config.agent.learning_rate,
         discount_factor=config.agent.discount_factor,

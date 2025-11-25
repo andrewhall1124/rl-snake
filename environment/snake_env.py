@@ -2,8 +2,10 @@ from collections import deque
 from enum import IntEnum
 from typing import TypeAlias
 
+import imageio
 import numpy as np
 from numpy.typing import NDArray
+from PIL import Image, ImageDraw
 
 Position: TypeAlias = tuple[int, int]
 State: TypeAlias = NDArray[np.int8]
@@ -48,6 +50,8 @@ class SnakeEnv:
         # 0 = straight, 1 = left turn, 2 = right turn
         self.action_space: int = 3
         self.state_size: int = 11  # Feature vector size
+
+        self.frames = []  # store PIL images for GIF/MP4 export
 
     def reset(self) -> State:
         """Reset the environment to initial state."""
@@ -229,26 +233,94 @@ class SnakeEnv:
 
         return 0
 
-    def render(self, mode: str = "human") -> None:
-        """Render the environment (text-based)."""
-        if mode != "human":
-            return
+    # def render(self, mode: str = "human") -> None:
+    #     """Render the environment (text-based)."""
+    #     if mode != "human":
+    #         return
 
-        grid = [[" " for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+    #     grid = [[" " for _ in range(self.grid_size)] for _ in range(self.grid_size)]
 
-        # Place snake
-        for i, segment in enumerate(self.snake):
+    #     # Place snake
+    #     for i, segment in enumerate(self.snake):
+    #         if i == 0:
+    #             grid[segment[0]][segment[1]] = "H"  # Head
+    #         else:
+    #             grid[segment[0]][segment[1]] = "o"  # Body
+
+    #     # Place food
+    #     grid[self.food[0]][self.food[1]] = "F"
+
+    #     # Print grid
+    #     print("\n" + "=" * (self.grid_size * 2 + 1))
+    #     for row in grid:
+    #         print("|" + "|".join(row) + "|")
+    #     print("=" * (self.grid_size * 2 + 1))
+    #     print(f"Score: {self.score} | Steps: {self.steps}")
+
+    def render(self, mode: str = "human", pixel_size: int = 20) -> None:
+        """
+        Retro 8-bit video-game-style renderer.
+        Produces a PIL image and stores each frame for MP4/GIF output.
+        """
+
+        # Create blank RGB image
+        img_size = (self.grid_size * pixel_size, self.grid_size * pixel_size)
+        img = Image.new("RGB", img_size, color=(10, 10, 10))  # dark background
+        draw = ImageDraw.Draw(img)
+
+        # Colors (retro palette)
+        COLOR_BG = (10, 10, 10)
+        COLOR_GRID = (40, 40, 40)
+        COLOR_SNAKE = (0, 255, 0)  # bright green
+        COLOR_SNAKE_HEAD = (0, 200, 0)
+        COLOR_FOOD = (255, 0, 0)
+
+        # Draw grid lines (pixel-art effect)
+        for r in range(self.grid_size):
+            for c in range(self.grid_size):
+                x0 = c * pixel_size
+                y0 = r * pixel_size
+                x1 = x0 + pixel_size
+                y1 = y0 + pixel_size
+
+                # base grid cell
+                draw.rectangle([x0, y0, x1, y1], fill=COLOR_BG, outline=COLOR_GRID)
+
+        # Draw snake
+        for i, (r, c) in enumerate(self.snake):
+            x0 = c * pixel_size
+            y0 = r * pixel_size
+            x1 = x0 + pixel_size
+            y1 = y0 + pixel_size
+
             if i == 0:
-                grid[segment[0]][segment[1]] = "H"  # Head
+                color = COLOR_SNAKE_HEAD
             else:
-                grid[segment[0]][segment[1]] = "o"  # Body
+                color = COLOR_SNAKE
 
-        # Place food
-        grid[self.food[0]][self.food[1]] = "F"
+            draw.rectangle([x0, y0, x1, y1], fill=color)
 
-        # Print grid
-        print("\n" + "=" * (self.grid_size * 2 + 1))
-        for row in grid:
-            print("|" + "|".join(row) + "|")
-        print("=" * (self.grid_size * 2 + 1))
-        print(f"Score: {self.score} | Steps: {self.steps}")
+        # Draw food
+        fr, fc = self.food
+        x0 = fc * pixel_size
+        y0 = fr * pixel_size
+        x1 = x0 + pixel_size
+        y1 = y0 + pixel_size
+        draw.rectangle([x0, y0, x1, y1], fill=COLOR_FOOD)
+
+        # Save frame for video export
+        self.frames.append(img)
+
+        # If human: draw to screen (optional)
+        if mode == "human":
+            img.show()
+
+    def save_video(self, filename: str, fps: int = 10) -> None:
+        """
+        Save captured frames as MP4 or GIF based on file extension.
+        """
+        # Convert PIL images to numpy arrays
+        frames_np = [np.array(f) for f in self.frames]
+
+        imageio.mimsave(filename, frames_np, fps=fps)
+        print(f"Saved video to {filename}")
