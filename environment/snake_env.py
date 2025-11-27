@@ -4,6 +4,8 @@ from typing import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
+from rich.console import Console
+from rich.table import Table
 
 Position: TypeAlias = tuple[int, int]
 State: TypeAlias = NDArray[np.int8]
@@ -17,6 +19,14 @@ class Direction(IntEnum):
     RIGHT = 1
     DOWN = 2
     LEFT = 3
+
+
+class Action(IntEnum):
+    """Snake actions relative to current direction."""
+
+    STRAIGHT = 0
+    LEFT = 1
+    RIGHT = 2
 
 
 class SnakeEnv:
@@ -38,16 +48,17 @@ class SnakeEnv:
         self.rng: np.random.RandomState = np.random.RandomState(seed)
 
         # Game state
-        self.snake: deque[Position] | None = None
-        self.direction: Direction | None = None
-        self.food: Position | None = None
+        self.snake: deque[Position]
+        self.direction: Direction
+        self.food: Position
         self.steps: int = 0
         self.score: int = 0
+        self._initialized: bool = False
 
         # Action mapping: relative to current direction
         # 0 = straight, 1 = left turn, 2 = right turn
         self.action_space: int = 3
-        self.state_size: int = 11  # Feature vector size
+        self.state_size: int = grid_size * grid_size  # Grid state size
 
     def reset(self) -> State:
         """Reset the environment to initial state."""
@@ -59,14 +70,24 @@ class SnakeEnv:
         self.direction = Direction.LEFT
         self.steps = 0
         self.score = 0
+        self._initialized = True
 
         # Place food
         self._place_food()
 
         return self._get_state()
 
+    def _ensure_initialized(self) -> None:
+        """Ensure environment has been reset before use."""
+        if not self._initialized:
+            raise RuntimeError("Environment not initialized. Call reset() first.")
+
     def _place_food(self) -> None:
         """Place food at random empty position."""
+        # Check if board is full (win condition)
+        if len(self.snake) >= self.grid_size * self.grid_size:
+            return  # No space for food - game won!
+
         while True:
             food = (
                 self.rng.randint(0, self.grid_size),
@@ -76,12 +97,12 @@ class SnakeEnv:
                 self.food = food
                 break
 
-    def step(self, action: int) -> StepResult:
+    def step(self, action: Action) -> StepResult:
         """
         Execute one step in the environment.
 
         Args:
-            action: 0=straight, 1=left, 2=right (relative to current direction)
+            action: Action.STRAIGHT, Action.LEFT, or Action.RIGHT (relative to current direction)
 
         Returns:
             state: New state after action
@@ -89,19 +110,23 @@ class SnakeEnv:
             done: Whether episode is finished
             info: Additional information
         """
+        self._ensure_initialized()
         self.steps += 1
+
+        # Store previous distance to food for reward shaping
+        head = self.snake[0]
+        prev_distance = abs(head[0] - self.food[0]) + abs(head[1] - self.food[1])
 
         # Convert relative action to new direction
         self.direction = self._get_new_direction(action)
 
         # Calculate new head position
-        head = self.snake[0]
         delta = self._get_direction_delta(self.direction)
         new_head = (head[0] + delta[0], head[1] + delta[1])
 
         # Check collisions
         done = False
-        reward = -0.01  # Small penalty per step
+        reward = 0.0  # Base reward
 
         # Wall collision
         if (
@@ -127,10 +152,24 @@ class SnakeEnv:
         if new_head == self.food:
             reward = 10
             self.score += 1
-            self._place_food()
+
+            # Check for win condition before placing new food
+            if len(self.snake) >= self.grid_size * self.grid_size:
+                done = True  # Won the game!
+            else:
+                self._place_food()
         else:
             # Remove tail if no food eaten
             self.snake.pop()
+
+            # Reward shaping: encourage moving toward food
+            new_distance = abs(new_head[0] - self.food[0]) + abs(
+                new_head[1] - self.food[1]
+            )
+            if new_distance < prev_distance:
+                reward = 0.1  # Small reward for getting closer
+            else:
+                reward = -0.1  # Small penalty for getting farther
 
         # Check max steps
         if self.steps >= self.max_steps:
@@ -141,13 +180,13 @@ class SnakeEnv:
 
         return state, reward, done, info
 
-    def _get_new_direction(self, action: int) -> Direction:
+    def _get_new_direction(self, action: Action) -> Direction:
         """Convert relative action to absolute direction."""
-        if action == 0:  # Straight
+        if action == Action.STRAIGHT:
             return self.direction
-        elif action == 1:  # Left turn
+        elif action == Action.LEFT:
             return Direction((self.direction.value - 1) % 4)
-        else:  # Right turn (action == 2)
+        else:  # Right turn (action == Action.RIGHT)
             return Direction((self.direction.value + 1) % 4)
 
     def _get_direction_delta(self, direction: Direction) -> Position:
@@ -162,52 +201,32 @@ class SnakeEnv:
 
     def _get_state(self) -> State:
         """
-        Get current state as 11-dimensional feature vector.
+        Get current state as flattened grid.
 
-        Features:
-        - Food direction (4 binary): up, down, left, right
-        - Danger detection (3 binary): straight, left, right
-        - Current direction (4 one-hot): up, right, down, left
+        Grid encoding:
+        - 0: Empty cell
+        - 1: Snake body
+        - 2: Snake head
+        - 3: Food
         """
+        # Initialize empty grid
+        grid = np.zeros((self.grid_size, self.grid_size), dtype=np.int8)
+
+        # Place snake body
+        for pos in list(self.snake)[1:]:
+            grid[pos[0], pos[1]] = 1
+
+        # Place snake head
         head = self.snake[0]
+        grid[head[0], head[1]] = 2
 
-        # Food direction (relative to head)
-        food_up = int(self.food[0] < head[0])
-        food_down = int(self.food[0] > head[0])
-        food_left = int(self.food[1] < head[1])
-        food_right = int(self.food[1] > head[1])
+        # Place food
+        grid[self.food[0], self.food[1]] = 3
 
-        # Danger detection
-        danger_straight = self._is_danger(0)
-        danger_left = self._is_danger(1)
-        danger_right = self._is_danger(2)
+        # Flatten and return
+        return grid.flatten()
 
-        # Current direction (one-hot)
-        dir_up = int(self.direction == Direction.UP)
-        dir_right = int(self.direction == Direction.RIGHT)
-        dir_down = int(self.direction == Direction.DOWN)
-        dir_left = int(self.direction == Direction.LEFT)
-
-        state = np.array(
-            [
-                food_up,
-                food_down,
-                food_left,
-                food_right,
-                danger_straight,
-                danger_left,
-                danger_right,
-                dir_up,
-                dir_right,
-                dir_down,
-                dir_left,
-            ],
-            dtype=np.int8,
-        )
-
-        return state
-
-    def _is_danger(self, relative_action: int) -> int:
+    def _is_danger(self, relative_action: Action) -> int:
         """Check if there's danger in a direction (relative action)."""
         test_direction = self._get_new_direction(relative_action)
         head = self.snake[0]
@@ -229,26 +248,96 @@ class SnakeEnv:
 
         return 0
 
+    def get_features(self) -> NDArray[np.int8]:
+        """
+        Get 11-dimensional feature vector for Q-learning.
+
+        Returns:
+            11-dimensional feature vector with:
+            - Food direction (4 binary): up, down, left, right
+            - Danger detection (3 binary): straight, left, right
+            - Current direction (4 one-hot): up, right, down, left
+        """
+        self._ensure_initialized()
+
+        head = self.snake[0]
+
+        # Food direction (relative to head)
+        food_up = int(self.food[0] < head[0])
+        food_down = int(self.food[0] > head[0])
+        food_left = int(self.food[1] < head[1])
+        food_right = int(self.food[1] > head[1])
+
+        # Danger detection
+        danger_straight = self._is_danger(Action.STRAIGHT)
+        danger_left = self._is_danger(Action.LEFT)
+        danger_right = self._is_danger(Action.RIGHT)
+
+        # Current direction (one-hot)
+        dir_up = int(self.direction == Direction.UP)
+        dir_right = int(self.direction == Direction.RIGHT)
+        dir_down = int(self.direction == Direction.DOWN)
+        dir_left = int(self.direction == Direction.LEFT)
+
+        return np.array(
+            [
+                food_up,
+                food_down,
+                food_left,
+                food_right,
+                danger_straight,
+                danger_left,
+                danger_right,
+                dir_up,
+                dir_right,
+                dir_down,
+                dir_left,
+            ],
+            dtype=np.int8,
+        )
+
     def render(self, mode: str = "human") -> None:
-        """Render the environment (text-based)."""
+        """Render the environment with colored output using rich."""
         if mode != "human":
             return
 
-        grid = [[" " for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        self._ensure_initialized()
+        console = Console()
+        console.clear()
 
-        # Place snake
-        for i, segment in enumerate(self.snake):
-            if i == 0:
-                grid[segment[0]][segment[1]] = "H"  # Head
-            else:
-                grid[segment[0]][segment[1]] = "o"  # Body
+        # Build grid as string
+        lines = []
 
-        # Place food
-        grid[self.food[0]][self.food[1]] = "F"
+        # Top border
+        border = "┌" + "─" * (self.grid_size * 2) + "┐"
+        lines.append(border)
 
-        # Print grid
-        print("\n" + "=" * (self.grid_size * 2 + 1))
-        for row in grid:
-            print("|" + "|".join(row) + "|")
-        print("=" * (self.grid_size * 2 + 1))
-        print(f"Score: {self.score} | Steps: {self.steps}")
+        for row_idx in range(self.grid_size):
+            row = "│"
+            for col_idx in range(self.grid_size):
+                pos = (row_idx, col_idx)
+
+                if pos == self.snake[0]:
+                    # Snake head - bright green
+                    row += "[bright_green]██[/]"
+                elif pos in self.snake:
+                    # Snake body - green
+                    row += "[green]██[/]"
+                elif pos == self.food:
+                    # Food - red
+                    row += "[red]██[/]"
+                else:
+                    # Empty space
+                    row += "  "
+
+            row += "│"
+            lines.append(row)
+
+        # Bottom border
+        border = "└" + "─" * (self.grid_size * 2) + "┘"
+        lines.append(border)
+
+        console.print()
+        for line in lines:
+            console.print(line)
+        console.print(f"Score: {self.score} | Steps: {self.steps}")

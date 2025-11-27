@@ -2,15 +2,10 @@
 Random agent implementation for baseline comparison.
 """
 
-from typing import TYPE_CHECKING
-
 import numpy as np
 from numpy.typing import NDArray
 
-from agent.base_agent import BaseAgent, TrainingMetrics
-
-if TYPE_CHECKING:
-    from environment.snake_env import SnakeEnv
+from agent.base_agent import BaseAgent
 
 
 class RandomAgent(BaseAgent):
@@ -25,7 +20,7 @@ class RandomAgent(BaseAgent):
         """
         self.action_space = action_space
 
-    def get_action(self, state: NDArray[np.int8], training: bool = True) -> int:
+    def get_action(self, training: bool = True) -> int:
         """
         Select a random action.
 
@@ -37,12 +32,3 @@ class RandomAgent(BaseAgent):
             Randomly selected action
         """
         return np.random.randint(0, self.action_space)
-
-    def train(
-        self,
-        env: "SnakeEnv",
-        num_episodes: int,
-        save_interval: int = 100,
-        model_dir: str = "models",
-    ) -> TrainingMetrics:
-        pass

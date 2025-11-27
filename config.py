@@ -11,17 +11,17 @@ class EnvironmentConfig:
     """Environment configuration settings."""
 
     grid_size: int = 10
-    max_steps_per_episode: int = 1000
+    max_steps_per_episode: int = 500
 
 
 @dataclass(frozen=True)
 class AgentConfig:
     """Agent hyperparameters."""
 
-    learning_rate: float = 0.1  # Alpha: how much to update Q-values
-    discount_factor: float = 0.95  # Gamma: importance of future rewards
+    learning_rate: float = 0.3  # Alpha: how much to update Q-values
+    discount_factor: float = 0.90  # Gamma: importance of future rewards
     epsilon_start: float = 1.0  # Initial exploration rate
-    epsilon_decay: float = 0.995  # Decay rate per episode
+    epsilon_decay: float = 0.9995  # Decay rate per episode
     epsilon_min: float = 0.01  # Minimum exploration rate
 
 
@@ -29,9 +29,8 @@ class AgentConfig:
 class TrainingConfig:
     """Training settings."""
 
-    num_episodes: int = 5000
-    print_interval: int = 100  # Print progress every N episodes
-    save_interval: int = 500  # Save Q-table every N episodes
+    num_episodes: int = 20000
+    save_interval: int = 2000  # Save Q-table every N episodes
 
 
 @dataclass(frozen=True)

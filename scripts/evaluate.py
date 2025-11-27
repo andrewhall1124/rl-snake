@@ -6,7 +6,7 @@ import time
 
 import numpy as np
 
-from agent import BaseAgent
+from agent import BaseAgent, CycleAgent, DQNAgent, QLearningAgent, RandomAgent
 from config import config
 from environment import SnakeEnv
 
@@ -50,7 +50,7 @@ def evaluate(
 
     # Evaluation loop
     for episode in range(1, num_episodes + 1):
-        state = env.reset()
+        env.reset()
         total_reward = 0
         steps = 0
         done = False
@@ -61,15 +61,14 @@ def evaluate(
 
         while not done:
             # Select action (greedy, no exploration)
-            action = agent.get_action(state, training=False)
-            next_state, reward, done, info = env.step(action)
+            action = agent.get_action(training=False)
+            _, reward, done, info = env.step(action)
 
             total_reward += reward
             steps += 1
-            state = next_state
 
             if render:
-                time.sleep(0.2)  # Slow down for viewing
+                time.sleep(0.1)  # Slow down for viewing
                 env.render()
 
         # Store metrics
@@ -112,14 +111,6 @@ def evaluate(
 
 
 if __name__ == "__main__":
-    import os
-    import sys
-
-    from agent import QLearningAgent, RandomAgent
-
-    # Parse command line arguments
-    model_path = "models/q_table_final.pkl"
-
     # Initialize environment
     env = SnakeEnv(
         grid_size=config.environment.grid_size,
@@ -127,21 +118,29 @@ if __name__ == "__main__":
         seed=config.random_seed,
     )
 
-    # Random
-    agent = RandomAgent(action_space=env.action_space)
+    # # Random
+    # agent = RandomAgent(action_space=env.action_space)
 
-    # # Q-Learning
-    # agent = QLearningAgent(
-    #     action_size=env.action_space,
-    #     epsilon=0.0,  # Pure exploitation during evaluation
-    #     seed=config.random_seed,
+    # Q-Learning
+    agent = QLearningAgent(
+        env=env,
+        epsilon=0.0,  # Pure exploitation during evaluation
+        seed=config.random_seed,
+    )
+    agent.load("models/q_table_final.pkl")
+
+    # # Cycle Agent
+    # agent = CycleAgent(env=env)
+
+    # # DQN
+    # agent = DQNAgent(
+    #     env=env,
     # )
-    # agent.load(model_path)
+    # agent.load("models/dqn_episode_20000.pt")
 
     # Run evaluation
     evaluate(agent=agent, env=env)
 
-    # Ask if user wants to see rendered episodes
     response = input("\nWould you like to watch the agent play? (y/n): ")
     if response.lower() == "y":
         num_episodes = int(input("How many episodes to watch? (default 5): ") or "5")

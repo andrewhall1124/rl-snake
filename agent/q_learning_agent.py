@@ -22,7 +22,7 @@ class QLearningAgent(BaseAgent):
 
     def __init__(
         self,
-        action_size: int,
+        env: "SnakeEnv",
         learning_rate: float = 0.1,
         discount_factor: float = 0.95,
         epsilon: float = 1.0,
@@ -34,7 +34,7 @@ class QLearningAgent(BaseAgent):
         Initialize Q-learning agent.
 
         Args:
-            action_size: Number of possible actions
+            env: Environment instance to interact with
             learning_rate: Learning rate (alpha)
             discount_factor: Discount factor (gamma)
             epsilon: Initial exploration rate
@@ -42,7 +42,8 @@ class QLearningAgent(BaseAgent):
             epsilon_min: Minimum epsilon value
             seed: Random seed for reproducibility
         """
-        self.action_size: int = action_size
+        self.env: "SnakeEnv" = env
+        self.action_space: int = env.action_space
         self.learning_rate: float = learning_rate
         self.discount_factor: float = discount_factor
         self.epsilon: float = epsilon
@@ -51,26 +52,27 @@ class QLearningAgent(BaseAgent):
 
         # Q-table: dictionary mapping state tuples to action values
         # Using defaultdict to initialize unseen states to zeros
-        self.q_table: QTable = defaultdict(lambda: np.zeros(action_size))
+        self.q_table: QTable = defaultdict(lambda: np.zeros(self.action_space))
 
         self.rng: np.random.RandomState = np.random.RandomState(seed)
 
-    def get_action(self, state: NDArray[np.int8], training: bool = True) -> int:
+    def get_action(self, training: bool = True) -> int:
         """
         Select action using epsilon-greedy policy.
 
         Args:
-            state: Current state (numpy array)
             training: If True, use epsilon-greedy; if False, use greedy
 
         Returns:
             action: Selected action
         """
-        state_tuple = tuple(state)
+        # Get feature vector from environment
+        features = self.env.get_features()
+        state_tuple = tuple(features)
 
         # Epsilon-greedy exploration
         if training and self.rng.random() < self.epsilon:
-            return self.rng.randint(0, self.action_size)
+            return self.rng.randint(0, self.action_space)
         else:
             # Exploit: choose best action
             q_values = self.q_table[state_tuple]
@@ -78,10 +80,9 @@ class QLearningAgent(BaseAgent):
 
     def update(
         self,
-        state: NDArray[np.int8],
+        prev_features: NDArray[np.int8],
         action: int,
         reward: float,
-        next_state: NDArray[np.int8],
         done: bool,
     ) -> None:
         """
@@ -90,14 +91,12 @@ class QLearningAgent(BaseAgent):
         Q(s,a) <- Q(s,a) + alpha * [r + gamma * max(Q(s',a')) - Q(s,a)]
 
         Args:
-            state: Current state
+            prev_features: Previous state features
             action: Action taken
             reward: Reward received
-            next_state: Next state
             done: Whether episode is finished
         """
-        state_tuple = tuple(state)
-        next_state_tuple = tuple(next_state)
+        state_tuple = tuple(prev_features)
 
         # Current Q-value
         current_q = self.q_table[state_tuple][action]
@@ -106,6 +105,9 @@ class QLearningAgent(BaseAgent):
         if done:
             target_q = reward
         else:
+            # Get current features (after taking action)
+            next_features = self.env.get_features()
+            next_state_tuple = tuple(next_features)
             max_next_q = np.max(self.q_table[next_state_tuple])
             target_q = reward + self.discount_factor * max_next_q
 
@@ -125,7 +127,7 @@ class QLearningAgent(BaseAgent):
         save_data = {
             "q_table": q_table_dict,
             "epsilon": self.epsilon,
-            "action_size": self.action_size,
+            "action_space": self.action_space,
             "learning_rate": self.learning_rate,
             "discount_factor": self.discount_factor,
             "epsilon_min": self.epsilon_min,
@@ -140,11 +142,11 @@ class QLearningAgent(BaseAgent):
             save_data = pickle.load(f)
 
         # Restore Q-table as defaultdict
-        self.q_table = defaultdict(lambda: np.zeros(self.action_size))
+        self.q_table = defaultdict(lambda: np.zeros(self.action_space))
         self.q_table.update(save_data["q_table"])
 
         self.epsilon = save_data["epsilon"]
-        self.action_size = save_data["action_size"]
+        self.action_space = save_data["action_space"]
         self.learning_rate = save_data["learning_rate"]
         self.discount_factor = save_data["discount_factor"]
         self.epsilon_min = save_data["epsilon_min"]
@@ -159,7 +161,6 @@ class QLearningAgent(BaseAgent):
 
     def train(
         self,
-        env: "SnakeEnv",
         num_episodes: int,
         save_interval: int = 100,
         model_dir: str = "models",
@@ -168,7 +169,6 @@ class QLearningAgent(BaseAgent):
         Train the agent on the given environment.
 
         Args:
-            env: Environment instance to train on
             num_episodes: Number of episodes to train
             save_interval: Interval for saving Q-table checkpoints
             model_dir: Directory to save model checkpoints
@@ -198,23 +198,25 @@ class QLearningAgent(BaseAgent):
 
         # Training loop
         for episode in tqdm(range(1, num_episodes + 1), desc="Training"):
-            state = env.reset()
+            self.env.reset()
             total_reward = 0
             steps = 0
             done = False
 
             while not done:
+                # Get current state features before action
+                current_features = self.env.get_features()
+
                 # Select and perform action
-                action = self.get_action(state, training=True)
-                next_state, reward, done, info = env.step(action)
+                action = self.get_action(training=True)
+                _, reward, done, info = self.env.step(action)
 
                 # Update Q-table
-                self.update(state, action, reward, next_state, done)
+                self.update(current_features, action, reward, done)
 
                 # Update counters
                 total_reward += reward
                 steps += 1
-                state = next_state
 
             # Decay epsilon after episode
             self.decay_epsilon()
