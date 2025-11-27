@@ -4,6 +4,7 @@ Evaluation script for trained Snake agents (agent-agnostic).
 
 import time
 
+import imageio
 import numpy as np
 
 from agent import BaseAgent, CycleAgent, DQNAgent, QLearningAgent, RandomAgent
@@ -48,16 +49,15 @@ def evaluate(
     print(f"\nRunning {num_episodes} evaluation episodes...")
     print("=" * 50)
 
-    # Evaluation loop
+    # Clear any old frames before starting recording
+    if render:
+        env.frames = []
+
     for episode in range(1, num_episodes + 1):
         env.reset()
         total_reward = 0
         steps = 0
         done = False
-
-        if render:
-            print(f"\n--- Episode {episode} ---")
-            env.render()
 
         while not done:
             # Select action (greedy, no exploration)
@@ -71,7 +71,6 @@ def evaluate(
                 time.sleep(0.1)  # Slow down for viewing
                 env.render()
 
-        # Store metrics
         episode_rewards.append(total_reward)
         episode_lengths.append(steps)
         episode_scores.append(info["score"])
@@ -82,7 +81,11 @@ def evaluate(
                 f"Reward = {total_reward:.2f}, Steps = {steps}"
             )
 
-    # Print statistics
+    # Save a single video across all episodes
+    if render and video_path is not None:
+        env.save_video(video_path, fps=fps)
+
+    # Stats
     print("\n" + "=" * 50)
     print("Evaluation Results")
     print("=" * 50)

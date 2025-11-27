@@ -2,6 +2,7 @@ from collections import deque
 from enum import IntEnum
 from typing import TypeAlias
 
+import imageio
 import numpy as np
 from numpy.typing import NDArray
 from rich.console import Console
@@ -59,6 +60,8 @@ class SnakeEnv:
         # 0 = straight, 1 = left turn, 2 = right turn
         self.action_space: int = 3
         self.state_size: int = grid_size * grid_size  # Grid state size
+
+        self.frames = []  # store PIL images for GIF/MP4 export
 
     def reset(self) -> State:
         """Reset the environment to initial state."""
