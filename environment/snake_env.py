@@ -84,6 +84,10 @@ class SnakeEnv:
 
     def _place_food(self) -> None:
         """Place food at random empty position."""
+        # Check if board is full (win condition)
+        if len(self.snake) >= self.grid_size * self.grid_size:
+            return  # No space for food - game won!
+
         while True:
             food = (
                 self.rng.randint(0, self.grid_size),
@@ -148,7 +152,12 @@ class SnakeEnv:
         if new_head == self.food:
             reward = 10
             self.score += 1
-            self._place_food()
+
+            # Check for win condition before placing new food
+            if len(self.snake) >= self.grid_size * self.grid_size:
+                done = True  # Won the game!
+            else:
+                self._place_food()
         else:
             # Remove tail if no food eaten
             self.snake.pop()

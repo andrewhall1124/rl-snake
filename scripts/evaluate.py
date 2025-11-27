@@ -68,7 +68,7 @@ def evaluate(
             steps += 1
 
             if render:
-                time.sleep(0.1)  # Slow down for viewing
+                time.sleep(0.01)  # Slow down for viewing
                 env.render()
 
         # Store metrics
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     # Initialize environment
     env = SnakeEnv(
         grid_size=config.environment.grid_size,
-        max_steps=config.environment.max_steps_per_episode,
+        max_steps=3000,  # config.environment.max_steps_per_episode,
         seed=config.random_seed,
     )
 
@@ -133,10 +133,10 @@ if __name__ == "__main__":
     agent = CycleAgent(env=env)
 
     # Run evaluation
-    evaluate(agent=agent, env=env)
+    evaluate(agent=agent, env=env, num_episodes=5, render=True)
 
-    # Ask if user wants to see rendered episodes
-    response = input("\nWould you like to watch the agent play? (y/n): ")
-    if response.lower() == "y":
-        num_episodes = int(input("How many episodes to watch? (default 5): ") or "5")
-        evaluate(agent=agent, env=env, num_episodes=num_episodes, render=True)
+    # # Ask if user wants to see rendered episodes
+    # response = input("\nWould you like to watch the agent play? (y/n): ")
+    # if response.lower() == "y":
+    #     num_episodes = int(input("How many episodes to watch? (default 5): ") or "5")
+    #     evaluate(agent=agent, env=env, num_episodes=num_episodes, render=True)

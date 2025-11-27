@@ -41,128 +41,34 @@ class CycleAgent(BaseAgent):
         Returns:
             List of (row, col) positions forming a complete cycle
         """
-        path = [
-            # Right
-            (0, 0),
-            # Down 1
-            (0, 1),
-            (1, 1),
-            (2, 1),
-            (3, 1),
-            (4, 1),
-            (5, 1),
-            (6, 1),
-            (7, 1),
-            # Right
-            (8, 1),
-            # Up 2
-            (8, 2),
-            (7, 2),
-            (6, 2),
-            (5, 2),
-            (4, 2),
-            (3, 2),
-            (2, 2),
-            (1, 2),
-            # Right
-            (0, 2),
-            # Down 3
-            (0, 3),
-            (1, 3),
-            (2, 3),
-            (3, 3),
-            (4, 3),
-            (5, 3),
-            (6, 3),
-            (7, 3),
-            # Right
-            (8, 3),
-            # Up 4
-            (8, 4),
-            (7, 4),
-            (6, 4),
-            (5, 4),
-            (4, 4),
-            (3, 4),
-            (2, 4),
-            (1, 4),
-            # Right
-            (0, 4),
-            # Down 5
-            (0, 5),
-            (1, 5),
-            (2, 5),
-            (3, 5),
-            (4, 5),
-            (5, 5),
-            (6, 5),
-            (7, 5),
-            # Right
-            (8, 5),
-            # Up 6
-            (8, 6),
-            (7, 6),
-            (6, 6),
-            (5, 6),
-            (4, 6),
-            (3, 6),
-            (2, 6),
-            (1, 6),
-            # Right
-            (0, 6),
-            # Down 7
-            (0, 7),
-            (1, 7),
-            (2, 7),
-            (3, 7),
-            (4, 7),
-            (5, 7),
-            (6, 7),
-            (7, 7),
-            # Right
-            (8, 7),
-            # Up 8
-            (8, 8),
-            (7, 8),
-            (6, 8),
-            (5, 8),
-            (4, 8),
-            (3, 8),
-            (2, 8),
-            (1, 8),
-            # Right
-            (0, 8),
-            # Down 9
-            (0, 9),
-            (1, 9),
-            (2, 9),
-            (3, 9),
-            (4, 9),
-            (5, 9),
-            (6, 9),
-            (7, 9),
-            (8, 9),
-            # Left
-            (9, 9),
-            (9, 8),
-            (9, 7),
-            (9, 6),
-            (9, 5),
-            (9, 4),
-            (9, 3),
-            (9, 2),
-            (9, 1),
-            (9, 0),
-            # Up 0
-            (8, 0),
-            (7, 0),
-            (6, 0),
-            (5, 0),
-            (4, 0),
-            (3, 0),
-            (2, 0),
-            (1, 0),
-        ]
+        n = self.grid_size
+        path = []
+
+        # Start at (0, 0)
+        path.append((0, 0))
+
+        # Zigzag through columns 1 to n-2
+        for col in range(1, n - 1):
+            if col % 2 == 1:
+                # Odd columns: go down from row 0 to n-2
+                for row in range(n - 1):
+                    path.append((row, col))
+            else:
+                # Even columns: go up from row n-2 to 0
+                for row in range(n - 2, -1, -1):
+                    path.append((row, col))
+
+        # Last full column (n-1)
+        for row in range(n):
+            path.append((row, n - 1))
+
+        # Traverse bottom edge (right to left) along row n-1
+        for col in range(n - 1, -1, -1):
+            path.append((n - 1, col))
+
+        # Traverse left edge (bottom to top) along column 0
+        for row in range(n - 2, 0, -1):
+            path.append((row, 0))
 
         return path
 
