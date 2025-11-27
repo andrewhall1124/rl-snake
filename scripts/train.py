@@ -2,7 +2,7 @@
 Training script for Snake Q-Learning agent.
 """
 
-from agent import QLearningAgent, RandomAgent
+from agent import DQNAgent, QLearningAgent, RandomAgent
 from config import config
 from environment import SnakeEnv
 
@@ -19,6 +19,21 @@ def main() -> None:
         max_steps=config.environment.max_steps_per_episode,
         seed=config.random_seed,
     )
+
+    # # DQN
+    # agent = DQNAgent(
+    #     env=env,
+    #     hidden_size=128,
+    #     learning_rate=0.001,
+    #     discount_factor=0.95,
+    #     epsilon=1,
+    #     epsilon_decay=0.995,
+    #     epsilon_min=0.01,
+    #     buffer_capacity=10000,
+    #     batch_size=64,
+    #     target_update=10,
+    #     seed=42
+    # )
 
     # Q-Learning
     agent = QLearningAgent(
