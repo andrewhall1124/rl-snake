@@ -6,7 +6,7 @@ import time
 
 import numpy as np
 
-from agent import BaseAgent, QLearningAgent, RandomAgent
+from agent import BaseAgent, CycleAgent, QLearningAgent, RandomAgent
 from config import config
 from environment import SnakeEnv
 
@@ -118,8 +118,8 @@ if __name__ == "__main__":
         seed=config.random_seed,
     )
 
-    # Random
-    agent = RandomAgent(action_space=env.action_space)
+    # # Random
+    # agent = RandomAgent(action_space=env.action_space)
 
     # # Q-Learning
     # agent = QLearningAgent(
@@ -128,6 +128,9 @@ if __name__ == "__main__":
     #     seed=config.random_seed,
     # )
     # agent.load("models/q_table_final.pkl")
+
+    # Cycle Agent
+    agent = CycleAgent(env=env)
 
     # Run evaluation
     evaluate(agent=agent, env=env)
