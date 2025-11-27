@@ -135,7 +135,13 @@ class DQNAgent(BaseAgent):
             torch.manual_seed(seed)
 
         # Device configuration
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device(
+            "cuda"
+            if torch.cuda.is_available()
+            else "mps"
+            if torch.mps.is_available()
+            else "cpu"
+        )
 
         # Initialize networks
         self.policy_net = DQN(self.feature_size, hidden_size, self.action_space).to(
