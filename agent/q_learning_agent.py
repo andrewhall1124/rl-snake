@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 from tqdm import tqdm
 
 from agent.base_agent import BaseAgent
-from environment.snake_env import Direction
+from environment.snake_env import Action, Direction
 
 if TYPE_CHECKING:
     from environment.snake_env import SnakeEnv
@@ -115,13 +115,13 @@ class QLearningAgent(BaseAgent):
         food_right = int(food[1] > head[1])
 
         # Helper function to check danger
-        def is_danger(relative_action: int) -> int:
+        def is_danger(relative_action: Action) -> int:
             # Convert relative action to new direction
-            if relative_action == 0:  # Straight
+            if relative_action == Action.STRAIGHT:
                 test_direction = direction
-            elif relative_action == 1:  # Left turn
+            elif relative_action == Action.LEFT:
                 test_direction = Direction((direction.value - 1) % 4)
-            else:  # Right turn (relative_action == 2)
+            else:  # Action.RIGHT
                 test_direction = Direction((direction.value + 1) % 4)
 
             # Get delta for test direction
@@ -150,9 +150,9 @@ class QLearningAgent(BaseAgent):
             return 0
 
         # Danger detection
-        danger_straight = is_danger(0)
-        danger_left = is_danger(1)
-        danger_right = is_danger(2)
+        danger_straight = is_danger(Action.STRAIGHT)
+        danger_left = is_danger(Action.LEFT)
+        danger_right = is_danger(Action.RIGHT)
 
         # Current direction (one-hot)
         dir_up = int(direction == Direction.UP)
