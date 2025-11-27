@@ -6,7 +6,14 @@ import time
 
 import numpy as np
 
-from agent import BaseAgent, CycleAgent, DQNAgent, QLearningAgent, RandomAgent
+from agent import (
+    BaseAgent,
+    CycleAgent,
+    DQNAgent,
+    QLearningAgent,
+    RandomAgent,
+    SARSAAgent,
+)
 from config import config
 from environment import SnakeEnv
 
@@ -121,13 +128,13 @@ if __name__ == "__main__":
     # # Random
     # agent = RandomAgent(action_space=env.action_space)
 
-    # Q-Learning
-    agent = QLearningAgent(
-        env=env,
-        epsilon=0.0,  # Pure exploitation during evaluation
-        seed=config.random_seed,
-    )
-    agent.load("models/q_table_final.pkl")
+    # # Q-Learning
+    # agent = QLearningAgent(
+    #     env=env,
+    #     epsilon=0.0,  # Pure exploitation during evaluation
+    #     seed=config.random_seed,
+    # )
+    # agent.load("models/q_table_final.pkl")
 
     # # Cycle Agent
     # agent = CycleAgent(env=env)
@@ -137,6 +144,14 @@ if __name__ == "__main__":
     #     env=env,
     # )
     # agent.load("models/dqn_episode_20000.pt")
+
+    # SARSA
+    agent = SARSAAgent(
+        env=env,
+        epsilon=0.0,  # Pure exploitation during evaluation
+        seed=config.random_seed,
+    )
+    agent.load("models/sarsa_final.pkl")
 
     # Run evaluation
     evaluate(agent=agent, env=env)
