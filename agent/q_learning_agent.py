@@ -8,7 +8,6 @@ from numpy.typing import NDArray
 from tqdm import tqdm
 
 from agent.base_agent import BaseAgent
-from environment.snake_env import Action, Direction
 
 if TYPE_CHECKING:
     from environment.snake_env import SnakeEnv
@@ -23,8 +22,7 @@ class QLearningAgent(BaseAgent):
 
     def __init__(
         self,
-        action_size: int,
-        grid_size: int = 10,
+        env: "SnakeEnv",
         learning_rate: float = 0.1,
         discount_factor: float = 0.95,
         epsilon: float = 1.0,
@@ -36,8 +34,7 @@ class QLearningAgent(BaseAgent):
         Initialize Q-learning agent.
 
         Args:
-            action_size: Number of possible actions
-            grid_size: Size of the game grid (for state conversion)
+            env: Environment instance to interact with
             learning_rate: Learning rate (alpha)
             discount_factor: Discount factor (gamma)
             epsilon: Initial exploration rate
@@ -45,8 +42,8 @@ class QLearningAgent(BaseAgent):
             epsilon_min: Minimum epsilon value
             seed: Random seed for reproducibility
         """
-        self.action_size: int = action_size
-        self.grid_size: int = grid_size
+        self.env: "SnakeEnv" = env
+        self.action_space: int = env.action_space
         self.learning_rate: float = learning_rate
         self.discount_factor: float = discount_factor
         self.epsilon: float = epsilon
@@ -55,146 +52,27 @@ class QLearningAgent(BaseAgent):
 
         # Q-table: dictionary mapping state tuples to action values
         # Using defaultdict to initialize unseen states to zeros
-        self.q_table: QTable = defaultdict(lambda: np.zeros(action_size))
+        self.q_table: QTable = defaultdict(lambda: np.zeros(self.action_space))
 
         self.rng: np.random.RandomState = np.random.RandomState(seed)
 
-    def _grid_to_features(self, grid_state: NDArray[np.int8]) -> NDArray[np.int8]:
-        """
-        Convert grid state to feature vector.
-
-        Args:
-            grid_state: Flattened grid state (grid_size * grid_size)
-
-        Returns:
-            11-dimensional feature vector with:
-            - Food direction (4 binary): up, down, left, right
-            - Danger detection (3 binary): straight, left, right
-            - Current direction (4 one-hot): up, right, down, left
-        """
-        # Reshape to 2D grid
-        grid = grid_state.reshape(self.grid_size, self.grid_size)
-
-        # Find positions
-        head_pos = np.where(grid == 2)
-        head = (head_pos[0][0], head_pos[1][0])
-
-        food_pos = np.where(grid == 3)
-        food = (food_pos[0][0], food_pos[1][0])
-
-        snake_positions = set()
-        for i in range(self.grid_size):
-            for j in range(self.grid_size):
-                if grid[i, j] in [1, 2]:  # Body or head
-                    snake_positions.add((i, j))
-
-        # Determine current direction by looking at snake body
-        body_pos = np.where(grid == 1)
-        if len(body_pos[0]) > 0:
-            # Find the closest body segment to head
-            neck = (body_pos[0][0], body_pos[1][0])
-            delta = (head[0] - neck[0], head[1] - neck[1])
-
-            # Map delta to direction
-            if delta == (-1, 0):
-                direction = Direction.UP
-            elif delta == (0, 1):
-                direction = Direction.RIGHT
-            elif delta == (1, 0):
-                direction = Direction.DOWN
-            else:  # (0, -1)
-                direction = Direction.LEFT
-        else:
-            # Default direction if snake has only head
-            direction = Direction.LEFT
-
-        # Food direction (relative to head)
-        food_up = int(food[0] < head[0])
-        food_down = int(food[0] > head[0])
-        food_left = int(food[1] < head[1])
-        food_right = int(food[1] > head[1])
-
-        # Helper function to check danger
-        def is_danger(relative_action: Action) -> int:
-            # Convert relative action to new direction
-            if relative_action == Action.STRAIGHT:
-                test_direction = direction
-            elif relative_action == Action.LEFT:
-                test_direction = Direction((direction.value - 1) % 4)
-            else:  # Action.RIGHT
-                test_direction = Direction((direction.value + 1) % 4)
-
-            # Get delta for test direction
-            deltas = {
-                Direction.UP: (-1, 0),
-                Direction.RIGHT: (0, 1),
-                Direction.DOWN: (1, 0),
-                Direction.LEFT: (0, -1),
-            }
-            delta = deltas[test_direction]
-            test_pos = (head[0] + delta[0], head[1] + delta[1])
-
-            # Check wall collision
-            if (
-                test_pos[0] < 0
-                or test_pos[0] >= self.grid_size
-                or test_pos[1] < 0
-                or test_pos[1] >= self.grid_size
-            ):
-                return 1
-
-            # Check self collision
-            if test_pos in snake_positions:
-                return 1
-
-            return 0
-
-        # Danger detection
-        danger_straight = is_danger(Action.STRAIGHT)
-        danger_left = is_danger(Action.LEFT)
-        danger_right = is_danger(Action.RIGHT)
-
-        # Current direction (one-hot)
-        dir_up = int(direction == Direction.UP)
-        dir_right = int(direction == Direction.RIGHT)
-        dir_down = int(direction == Direction.DOWN)
-        dir_left = int(direction == Direction.LEFT)
-
-        return np.array(
-            [
-                food_up,
-                food_down,
-                food_left,
-                food_right,
-                danger_straight,
-                danger_left,
-                danger_right,
-                dir_up,
-                dir_right,
-                dir_down,
-                dir_left,
-            ],
-            dtype=np.int8,
-        )
-
-    def get_action(self, state: NDArray[np.int8], training: bool = True) -> int:
+    def get_action(self, training: bool = True) -> int:
         """
         Select action using epsilon-greedy policy.
 
         Args:
-            state: Current state (grid state from environment)
             training: If True, use epsilon-greedy; if False, use greedy
 
         Returns:
             action: Selected action
         """
-        # Convert grid state to feature vector
-        features = self._grid_to_features(state)
+        # Get feature vector from environment
+        features = self.env.get_features()
         state_tuple = tuple(features)
 
         # Epsilon-greedy exploration
         if training and self.rng.random() < self.epsilon:
-            return self.rng.randint(0, self.action_size)
+            return self.rng.randint(0, self.action_space)
         else:
             # Exploit: choose best action
             q_values = self.q_table[state_tuple]
@@ -202,10 +80,9 @@ class QLearningAgent(BaseAgent):
 
     def update(
         self,
-        state: NDArray[np.int8],
+        prev_features: NDArray[np.int8],
         action: int,
         reward: float,
-        next_state: NDArray[np.int8],
         done: bool,
     ) -> None:
         """
@@ -214,18 +91,12 @@ class QLearningAgent(BaseAgent):
         Q(s,a) <- Q(s,a) + alpha * [r + gamma * max(Q(s',a')) - Q(s,a)]
 
         Args:
-            state: Current state (grid state)
+            prev_features: Previous state features
             action: Action taken
             reward: Reward received
-            next_state: Next state (grid state)
             done: Whether episode is finished
         """
-        # Convert grid states to feature vectors
-        features = self._grid_to_features(state)
-        next_features = self._grid_to_features(next_state)
-
-        state_tuple = tuple(features)
-        next_state_tuple = tuple(next_features)
+        state_tuple = tuple(prev_features)
 
         # Current Q-value
         current_q = self.q_table[state_tuple][action]
@@ -234,6 +105,9 @@ class QLearningAgent(BaseAgent):
         if done:
             target_q = reward
         else:
+            # Get current features (after taking action)
+            next_features = self.env.get_features()
+            next_state_tuple = tuple(next_features)
             max_next_q = np.max(self.q_table[next_state_tuple])
             target_q = reward + self.discount_factor * max_next_q
 
@@ -253,7 +127,7 @@ class QLearningAgent(BaseAgent):
         save_data = {
             "q_table": q_table_dict,
             "epsilon": self.epsilon,
-            "action_size": self.action_size,
+            "action_space": self.action_space,
             "learning_rate": self.learning_rate,
             "discount_factor": self.discount_factor,
             "epsilon_min": self.epsilon_min,
@@ -268,11 +142,11 @@ class QLearningAgent(BaseAgent):
             save_data = pickle.load(f)
 
         # Restore Q-table as defaultdict
-        self.q_table = defaultdict(lambda: np.zeros(self.action_size))
+        self.q_table = defaultdict(lambda: np.zeros(self.action_space))
         self.q_table.update(save_data["q_table"])
 
         self.epsilon = save_data["epsilon"]
-        self.action_size = save_data["action_size"]
+        self.action_space = save_data["action_space"]
         self.learning_rate = save_data["learning_rate"]
         self.discount_factor = save_data["discount_factor"]
         self.epsilon_min = save_data["epsilon_min"]
@@ -287,7 +161,6 @@ class QLearningAgent(BaseAgent):
 
     def train(
         self,
-        env: "SnakeEnv",
         num_episodes: int,
         save_interval: int = 100,
         model_dir: str = "models",
@@ -296,7 +169,6 @@ class QLearningAgent(BaseAgent):
         Train the agent on the given environment.
 
         Args:
-            env: Environment instance to train on
             num_episodes: Number of episodes to train
             save_interval: Interval for saving Q-table checkpoints
             model_dir: Directory to save model checkpoints
@@ -326,23 +198,25 @@ class QLearningAgent(BaseAgent):
 
         # Training loop
         for episode in tqdm(range(1, num_episodes + 1), desc="Training"):
-            state = env.reset()
+            self.env.reset()
             total_reward = 0
             steps = 0
             done = False
 
             while not done:
+                # Get current state features before action
+                current_features = self.env.get_features()
+
                 # Select and perform action
-                action = self.get_action(state, training=True)
-                next_state, reward, done, info = env.step(action)
+                action = self.get_action(training=True)
+                _, reward, done, info = self.env.step(action)
 
                 # Update Q-table
-                self.update(state, action, reward, next_state, done)
+                self.update(current_features, action, reward, done)
 
                 # Update counters
                 total_reward += reward
                 steps += 1
-                state = next_state
 
             # Decay epsilon after episode
             self.decay_epsilon()

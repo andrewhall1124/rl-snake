@@ -239,6 +239,54 @@ class SnakeEnv:
 
         return 0
 
+    def get_features(self) -> NDArray[np.int8]:
+        """
+        Get 11-dimensional feature vector for Q-learning.
+
+        Returns:
+            11-dimensional feature vector with:
+            - Food direction (4 binary): up, down, left, right
+            - Danger detection (3 binary): straight, left, right
+            - Current direction (4 one-hot): up, right, down, left
+        """
+        self._ensure_initialized()
+
+        head = self.snake[0]
+
+        # Food direction (relative to head)
+        food_up = int(self.food[0] < head[0])
+        food_down = int(self.food[0] > head[0])
+        food_left = int(self.food[1] < head[1])
+        food_right = int(self.food[1] > head[1])
+
+        # Danger detection
+        danger_straight = self._is_danger(Action.STRAIGHT)
+        danger_left = self._is_danger(Action.LEFT)
+        danger_right = self._is_danger(Action.RIGHT)
+
+        # Current direction (one-hot)
+        dir_up = int(self.direction == Direction.UP)
+        dir_right = int(self.direction == Direction.RIGHT)
+        dir_down = int(self.direction == Direction.DOWN)
+        dir_left = int(self.direction == Direction.LEFT)
+
+        return np.array(
+            [
+                food_up,
+                food_down,
+                food_left,
+                food_right,
+                danger_straight,
+                danger_left,
+                danger_right,
+                dir_up,
+                dir_right,
+                dir_down,
+                dir_left,
+            ],
+            dtype=np.int8,
+        )
+
     def render(self, mode: str = "human") -> None:
         """Render the environment with colored output using rich."""
         if mode != "human":

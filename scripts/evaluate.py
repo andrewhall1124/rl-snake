@@ -6,7 +6,7 @@ import time
 
 import numpy as np
 
-from agent import BaseAgent, DQNAgent, QLearningAgent
+from agent import BaseAgent, QLearningAgent
 from config import config
 from environment import SnakeEnv
 
@@ -50,7 +50,7 @@ def evaluate(
 
     # Evaluation loop
     for episode in range(1, num_episodes + 1):
-        state = env.reset()
+        env.reset()
         total_reward = 0
         steps = 0
         done = False
@@ -61,12 +61,11 @@ def evaluate(
 
         while not done:
             # Select action (greedy, no exploration)
-            action = agent.get_action(state, training=False)
-            next_state, reward, done, info = env.step(action)
+            action = agent.get_action(training=False)
+            _, reward, done, info = env.step(action)
 
             total_reward += reward
             steps += 1
-            state = next_state
 
             if render:
                 time.sleep(0.1)  # Slow down for viewing
@@ -124,24 +123,11 @@ if __name__ == "__main__":
 
     # Q-Learning
     agent = QLearningAgent(
-        action_size=env.action_space,
+        env=env,
         epsilon=0.0,  # Pure exploitation during evaluation
         seed=config.random_seed,
     )
     agent.load("models/q_table_final.pkl")
-
-    # # DQN
-    # agent = DQNAgent(
-    #     state_size=env.state_size,
-    #     action_size=env.action_space,
-    #     learning_rate=config.agent.learning_rate,
-    #     discount_factor=config.agent.discount_factor,
-    #     epsilon=config.agent.epsilon_start,
-    #     epsilon_decay=config.agent.epsilon_decay,
-    #     epsilon_min=config.agent.epsilon_min,
-    #     seed=config.random_seed,
-    # )
-    # agent.load('models/dqn_final.pt')
 
     # Run evaluation
     evaluate(agent=agent, env=env)
