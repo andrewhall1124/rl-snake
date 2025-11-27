@@ -20,7 +20,7 @@ class RandomAgent(BaseAgent):
         """
         self.action_space = action_space
 
-    def get_action(self, state: NDArray[np.int8], training: bool = True) -> int:
+    def get_action(self, training: bool = True) -> int:
         """
         Select a random action.
 

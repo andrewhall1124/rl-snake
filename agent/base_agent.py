@@ -4,15 +4,12 @@ Base agent abstract class for reinforcement learning agents.
 
 from abc import ABC, abstractmethod
 
-import numpy as np
-from numpy.typing import NDArray
-
 
 class BaseAgent(ABC):
     """Abstract base class for reinforcement learning agents."""
 
     @abstractmethod
-    def get_action(self, state: NDArray[np.int8], training: bool = True) -> int:
+    def get_action(self, training: bool = True) -> int:
         """
         Select an action given the current state.
 
