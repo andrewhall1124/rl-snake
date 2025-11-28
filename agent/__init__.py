@@ -1,13 +1,13 @@
 from .base_agent import BaseAgent
-from .cycle_agent import CycleAgent
 from .dqn_agent import DQNAgent
+from .hamiltonian_cycle_agent import HamiltonianCycleAgent
 from .q_learning_agent import QLearningAgent
 from .random_agent import RandomAgent
 from .sarsa_agent import SARSAAgent
 
 __all__ = [
     "BaseAgent",
-    "CycleAgent",
+    "HamiltonianCycleAgent",
     "DQNAgent",
     "QLearningAgent",
     "RandomAgent",

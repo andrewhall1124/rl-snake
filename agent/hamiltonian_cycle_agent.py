@@ -1,5 +1,5 @@
 """
-Cycle agent that systematically visits every square in the grid.
+Hamiltonian Cycle agent that systematically visits every square in the grid.
 """
 
 from typing import TYPE_CHECKING
@@ -10,12 +10,12 @@ if TYPE_CHECKING:
     from environment.snake_env import SnakeEnv
 
 
-class CycleAgent(BaseAgent):
+class HamiltonianCycleAgent(BaseAgent):
     """Agent that follows a Hamiltonian cycle through all grid squares."""
 
     def __init__(self, env: "SnakeEnv"):
         """
-        Initialize cycle agent.
+        Initialize Hamiltonian Cycle agent.
 
         Args:
             env: Environment instance to interact with

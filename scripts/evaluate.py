@@ -8,8 +8,8 @@ import numpy as np
 
 from agent import (
     BaseAgent,
-    CycleAgent,
     DQNAgent,
+    HamiltonianCycleAgent,
     QLearningAgent,
     RandomAgent,
     SARSAAgent,
@@ -136,8 +136,8 @@ if __name__ == "__main__":
     # )
     # agent.load("models/q_table_final.pkl")
 
-    # # Cycle Agent
-    # agent = CycleAgent(env=env)
+    # # Hamiltonian Cycle Agent
+    # agent = HamiltonianCycleAgent(env=env)
 
     # # DQN
     # agent = DQNAgent(
