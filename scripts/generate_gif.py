@@ -3,28 +3,33 @@
 import os
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 from environment.snake_env import SnakeEnv
 
 
-def render_frame(env: SnakeEnv) -> np.ndarray:
+def render_frame_with_label(env: SnakeEnv, agent_name: str, score: int) -> np.ndarray:
     """
-    Render the current environment state as a numpy array (RGB image).
+    Render the current environment state as a numpy array with agent name and score.
 
     Args:
         env: Snake environment instance
+        agent_name: Name of the agent
+        score: Current score
 
     Returns:
-        RGB image array of shape (height, width, 3)
+        RGB image array with label below the grid
     """
     grid_size = env.grid_size
     cell_size = 40  # pixels per cell
+    label_height = 50  # pixels for label area
 
-    # Create RGB image
+    # Create RGB image (grid + label area)
     img_size = grid_size * cell_size
-    img = np.zeros((img_size, img_size, 3), dtype=np.uint8)  # Black background
+    total_height = img_size + label_height
+    img = np.zeros((total_height, img_size, 3), dtype=np.uint8)  # Black background
 
+    # Draw the game grid
     for row in range(grid_size):
         for col in range(grid_size):
             pos = (row, col)
@@ -48,38 +53,72 @@ def render_frame(env: SnakeEnv) -> np.ndarray:
     # Draw grid lines
     for i in range(grid_size):
         # Horizontal lines
-        img[i * cell_size, :] = [200, 200, 200]
+        img[i * cell_size, :img_size] = [200, 200, 200]
         # Vertical lines
-        img[:, i * cell_size] = [200, 200, 200]
+        img[:img_size, i * cell_size] = [200, 200, 200]
 
-    return img
+    # Convert to PIL Image to add text and border
+    pil_img = Image.fromarray(img)
+    draw = ImageDraw.Draw(pil_img)
+
+    # Draw a thick white border around the grid
+    border_thickness = 3
+    for i in range(border_thickness):
+        draw.rectangle(
+            [i, i, img_size - 1 - i, img_size - 1 - i],
+            outline=(255, 255, 255),
+            width=1,
+        )
+
+    # Try to use a nice font, fall back to default if not available
+    try:
+        font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 20)
+    except Exception:
+        font = ImageFont.load_default()
+
+    # Draw agent name and score
+    text = f"{agent_name}\nScore: {score}"
+    text_bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    text_x = (img_size - text_width) // 2
+    text_y = img_size + 5
+
+    draw.text((text_x, text_y), text, fill=(255, 255, 255), font=font)
+
+    return np.array(pil_img)
 
 
 def generate_agent_gif(
     agent,
+    agent_name: str,
     output_filename: str,
     num_episodes: int = 1,
     fps: int = 10,
+    frame_skip: int = 1,
 ) -> None:
     """
     Generate a GIF of an agent playing Snake in evaluation mode.
 
     Args:
         agent: Agent instance (must have get_action method and env attribute)
+        agent_name: Name of the agent to display in the GIF
         output_filename: Filename for the GIF (will be saved in gifs/ directory)
         num_episodes: Number of episodes to include in the GIF
         fps: Frames per second for the GIF
+        frame_skip: Only capture every Nth frame (higher = faster GIF, fewer frames)
     """
     output_path = f"gifs/{output_filename}"
 
     print("=" * 60)
     print("Generating Agent GIF")
     print("=" * 60)
+    print(f"Agent Name: {agent_name}")
     print(f"Agent Type: {type(agent).__name__}")
     print(f"Output: {output_path}")
     print(f"Episodes: {num_episodes}")
     print(f"Grid Size: {agent.env.grid_size}x{agent.env.grid_size}")
     print(f"FPS: {fps}")
+    print(f"Frame Skip: {frame_skip}")
     print("=" * 60)
 
     # Use the agent's environment
@@ -96,7 +135,7 @@ def generate_agent_gif(
         episode_steps = 0
 
         # Capture initial frame
-        frames.append(render_frame(env))
+        frames.append(render_frame_with_label(env, agent_name, 0))
 
         while not done:
             # Get action in evaluation mode (no exploration)
@@ -106,8 +145,9 @@ def generate_agent_gif(
             _, _, done, info = env.step(action)
             episode_steps += 1
 
-            # Capture frame
-            frames.append(render_frame(env))
+            # Capture frame (only every Nth frame based on frame_skip)
+            if episode_steps % frame_skip == 0 or done:
+                frames.append(render_frame_with_label(env, agent_name, env.score))
 
         score = info["score"]
         total_score += score
@@ -143,19 +183,71 @@ def generate_agent_gif(
 
 
 if __name__ == "__main__":
+    from agent.dqn_agent import DQNAgent
+    from agent.hamiltonian_cycle_agent import HamiltonianCycleAgent
     from agent.q_learning_agent import QLearningAgent
+    from agent.random_agent import RandomAgent
+    from agent.sarsa_agent import SARSAAgent
 
-    # Create environment and agent
-    env = SnakeEnv(grid_size=10, max_steps=1000, seed=42)
-    agent = QLearningAgent(env, seed=42)
+    # Configuration
+    seed = 42
+    max_steps = 1000
+    num_episodes = 3
+    fps = 10
 
-    # Load trained model
-    agent.load("models/q_table_final.pkl")
+    # List of agents to generate GIFs for
+    agents = []
 
-    # Generate GIF
+    # Random Agent
+    random_env = SnakeEnv(grid_size=10, max_steps=max_steps, seed=seed)
+    random_agent = RandomAgent(action_space=3)
+    random_agent.env = random_env
+    agents.append(("Random", random_agent, "random_agent.gif"))
+
+    # Q-Learning Agent
+    q_env = SnakeEnv(grid_size=10, max_steps=max_steps, seed=seed)
+    q_agent = QLearningAgent(q_env, seed=seed)
+    q_agent.load("models/q_table_final.pkl")
+    agents.append(("Q-Learning", q_agent, "q_learning_agent.gif"))
+
+    # SARSA Agent
+    sarsa_env = SnakeEnv(grid_size=10, max_steps=max_steps, seed=seed)
+    sarsa_agent = SARSAAgent(sarsa_env, seed=seed)
+    sarsa_agent.load("models/sarsa_final.pkl")
+    agents.append(("SARSA", sarsa_agent, "sarsa_agent.gif"))
+
+    # DQN Agent
+    dqn_env = SnakeEnv(grid_size=10, max_steps=max_steps, seed=seed)
+    dqn_agent = DQNAgent(dqn_env, seed=seed)
+    dqn_agent.load("models/dqn_final.pt")
+    agents.append(("DQN", dqn_agent, "dqn_agent.gif"))
+
+    # Hamiltonian Cycle Agent
+    hamiltonian_cycle_env = SnakeEnv(grid_size=10, max_steps=max_steps, seed=seed)
+    hamiltonian_cycle_agent = HamiltonianCycleAgent(hamiltonian_cycle_env)
+    agents.append(
+        ("Hamiltonian Cycle", hamiltonian_cycle_agent, "hamiltonian_cycle_agent.gif")
+    )
+
+    # Generate GIF for each agent
+    for agent_name, agent, output_filename in agents:
+        generate_agent_gif(
+            agent=agent,
+            agent_name=agent_name,
+            output_filename=output_filename,
+            num_episodes=num_episodes,
+            fps=fps,
+        )
+        print("\n")
+
+    # Hamiltonian Cycle Agent (full example)
+    hamiltonian_cycle_env = SnakeEnv(grid_size=10, max_steps=3000, seed=seed)
+    hamiltonian_cycle_agent = HamiltonianCycleAgent(hamiltonian_cycle_env)
     generate_agent_gif(
-        agent=agent,
-        output_filename="q_learning_agent.gif",
-        num_episodes=3,  # Show 3 episodes
-        fps=10,  # 10 frames per second
+        agent=hamiltonian_cycle_agent,
+        agent_name="Hamiltonian Cycle",
+        output_filename="hamiltonian_cycle_agent_fast.gif",
+        num_episodes=1,
+        fps=100,
+        frame_skip=5,  # Capture every 10th frame = 10x faster
     )
