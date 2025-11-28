@@ -234,7 +234,7 @@ def main():
     # Save as HTML
     os.makedirs("results", exist_ok=True)
     output_file = "results/performance_results.png"
-    gt_table.save(output_file)
+    gt_table.save(output_file, scale=3)
     print(f"Table saved to: {output_file}")
 
     # Determine best performers
