@@ -139,8 +139,9 @@ class SnakeEnv:
             reward = -10
             return self._get_state(), reward, done, {"score": self.score}
 
-        # Self collision
-        if new_head in self.snake:
+        # Self collision (exclude tail position unless eating food, since tail will move)
+        collision_check = list(self.snake)[:-1] if new_head != self.food else self.snake
+        if new_head in collision_check:
             done = True
             reward = -10
             return self._get_state(), reward, done, {"score": self.score}

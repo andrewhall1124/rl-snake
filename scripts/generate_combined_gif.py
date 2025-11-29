@@ -229,6 +229,7 @@ def generate_combined_gif(
 
 
 if __name__ == "__main__":
+    from agent.astar_agent import AStarAgent
     from agent.dqn_agent import DQNAgent
     from agent.hamiltonian_cycle_agent import HamiltonianCycleAgent
     from agent.q_learning_agent import QLearningAgent
@@ -263,9 +264,14 @@ if __name__ == "__main__":
     hamiltonian_cycle_env = SnakeEnv(grid_size=10, max_steps=max_steps, seed=seed)
     hamiltonian_cycle_agent = HamiltonianCycleAgent(hamiltonian_cycle_env)
 
+    # A* Agent
+    astar_env = SnakeEnv(grid_size=10, max_steps=max_steps, seed=seed)
+    astar_agent = AStarAgent(astar_env)
+
     # List of agents to compare
     agents = [
         ("Random", random_agent),
+        ("A*", astar_agent),
         ("Hamiltonian Cycle", hamiltonian_cycle_agent),
         ("SARSA", sarsa_agent),
         ("Q-Learning", q_agent),

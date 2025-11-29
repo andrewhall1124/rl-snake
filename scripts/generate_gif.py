@@ -183,6 +183,7 @@ def generate_agent_gif(
 
 
 if __name__ == "__main__":
+    from agent.astar_agent import AStarAgent
     from agent.dqn_agent import DQNAgent
     from agent.hamiltonian_cycle_agent import HamiltonianCycleAgent
     from agent.q_learning_agent import QLearningAgent
@@ -228,6 +229,11 @@ if __name__ == "__main__":
     agents.append(
         ("Hamiltonian Cycle", hamiltonian_cycle_agent, "hamiltonian_cycle_agent.gif")
     )
+
+    # A* Agent
+    astar_env = SnakeEnv(grid_size=10, max_steps=max_steps, seed=seed)
+    astar_agent = AStarAgent(astar_env)
+    agents.append(("A*", astar_agent, "astar_agent.gif"))
 
     # Generate GIF for each agent
     for agent_name, agent, output_filename in agents:

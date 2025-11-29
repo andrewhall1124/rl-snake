@@ -7,6 +7,7 @@ import time
 import numpy as np
 
 from agent import (
+    AStarAgent,
     BaseAgent,
     DQNAgent,
     HamiltonianCycleAgent,
@@ -145,13 +146,16 @@ if __name__ == "__main__":
     # )
     # agent.load("models/dqn_episode_20000.pt")
 
-    # SARSA
-    agent = SARSAAgent(
-        env=env,
-        epsilon=0.0,  # Pure exploitation during evaluation
-        seed=config.random_seed,
-    )
-    agent.load("models/sarsa_final.pkl")
+    # # SARSA
+    # agent = SARSAAgent(
+    #     env=env,
+    #     epsilon=0.0,  # Pure exploitation during evaluation
+    #     seed=config.random_seed,
+    # )
+    # agent.load("models/sarsa_final.pkl")
+
+    # A*
+    agent = AStarAgent(env=env)
 
     # Run evaluation
     evaluate(agent=agent, env=env)
