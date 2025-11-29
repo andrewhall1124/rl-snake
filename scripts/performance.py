@@ -9,7 +9,14 @@ import numpy as np
 import polars as pl
 from great_tables import GT, loc, style
 
-from agent import DQNAgent, QLearningAgent, SARSAAgent
+from agent import (
+    AStarAgent,
+    DQNAgent,
+    HamiltonianCycleAgent,
+    QLearningAgent,
+    RandomAgent,
+    SARSAAgent,
+)
 from config import config
 from environment import SnakeEnv
 
@@ -66,15 +73,30 @@ def main():
     # Initialize environment
     env = SnakeEnv(
         grid_size=config.environment.grid_size,
-        max_steps=config.environment.max_steps_per_episode,
+        max_steps=3000,
         seed=config.random_seed,
     )
 
     num_episodes = 100
     results = {}
 
+    # Evaluate Random Agent (baseline)
+    print("\n[1/6] Evaluating Random Agent...")
+    random_agent = RandomAgent(action_space=3)
+    results["Random"] = evaluate_agent(random_agent, env, num_episodes)
+
+    # Evaluate Hamiltonian Cycle Agent
+    print("\n[2/6] Evaluating Hamiltonian Cycle Agent...")
+    hamiltonian_agent = HamiltonianCycleAgent(env=env)
+    results["Hamiltonian Cycle"] = evaluate_agent(hamiltonian_agent, env, num_episodes)
+
+    # Evaluate A* Agent
+    print("\n[3/6] Evaluating A* Agent...")
+    astar_agent = AStarAgent(env=env)
+    results["A*"] = evaluate_agent(astar_agent, env, num_episodes)
+
     # Evaluate Q-Learning
-    print("\n[1/3] Evaluating Q-Learning Agent...")
+    print("\n[4/6] Evaluating Q-Learning Agent...")
     q_agent = QLearningAgent(
         env=env,
         epsilon=0.0,
@@ -84,7 +106,7 @@ def main():
     results["Q-Learning"] = evaluate_agent(q_agent, env, num_episodes)
 
     # Evaluate SARSA
-    print("\n[2/3] Evaluating SARSA Agent...")
+    print("\n[5/6] Evaluating SARSA Agent...")
     sarsa_agent = SARSAAgent(
         env=env,
         epsilon=0.0,
@@ -94,7 +116,7 @@ def main():
     results["SARSA"] = evaluate_agent(sarsa_agent, env, num_episodes)
 
     # Evaluate DQN
-    print("\n[3/3] Evaluating DQN Agent...")
+    print("\n[6/6] Evaluating DQN Agent...")
     dqn_agent = DQNAgent(env=env)
     dqn_agent.load("models/dqn_final.pt")
     results["DQN"] = evaluate_agent(dqn_agent, env, num_episodes)
