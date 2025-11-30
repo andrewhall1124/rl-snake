@@ -70,56 +70,62 @@ def main():
     print("RL Snake Performance Comparison")
     print("=" * 70)
 
-    # Initialize environment
-    env = SnakeEnv(
-        grid_size=config.environment.grid_size,
-        max_steps=3000,
-        seed=config.random_seed,
-    )
+    # Environment configuration (same for all agents)
+    grid_size = config.environment.grid_size
+    max_steps = 3000
+    seed = config.random_seed
 
     num_episodes = 100
     results = {}
 
     # Evaluate Random Agent (baseline)
     print("\n[1/6] Evaluating Random Agent...")
+    env_random = SnakeEnv(grid_size=grid_size, max_steps=max_steps, seed=seed)
     random_agent = RandomAgent(action_space=3)
-    results["Random"] = evaluate_agent(random_agent, env, num_episodes)
+    results["Random"] = evaluate_agent(random_agent, env_random, num_episodes)
 
     # Evaluate Hamiltonian Cycle Agent
     print("\n[2/6] Evaluating Hamiltonian Cycle Agent...")
-    hamiltonian_agent = HamiltonianCycleAgent(env=env)
-    results["Hamiltonian Cycle"] = evaluate_agent(hamiltonian_agent, env, num_episodes)
+    env_hamiltonian = SnakeEnv(grid_size=grid_size, max_steps=max_steps, seed=seed)
+    hamiltonian_agent = HamiltonianCycleAgent(env=env_hamiltonian)
+    results["Hamiltonian Cycle"] = evaluate_agent(
+        hamiltonian_agent, env_hamiltonian, num_episodes
+    )
 
     # Evaluate A* Agent
     print("\n[3/6] Evaluating A* Agent...")
-    astar_agent = AStarAgent(env=env)
-    results["A*"] = evaluate_agent(astar_agent, env, num_episodes)
+    env_astar = SnakeEnv(grid_size=grid_size, max_steps=max_steps, seed=seed)
+    astar_agent = AStarAgent(env=env_astar)
+    results["A*"] = evaluate_agent(astar_agent, env_astar, num_episodes)
 
     # Evaluate Q-Learning
     print("\n[4/6] Evaluating Q-Learning Agent...")
+    env_qlearning = SnakeEnv(grid_size=grid_size, max_steps=max_steps, seed=seed)
     q_agent = QLearningAgent(
-        env=env,
+        env=env_qlearning,
         epsilon=0.0,
         seed=config.random_seed,
     )
     q_agent.load("models/q_table_final.pkl")
-    results["Q-Learning"] = evaluate_agent(q_agent, env, num_episodes)
+    results["Q-Learning"] = evaluate_agent(q_agent, env_qlearning, num_episodes)
 
     # Evaluate SARSA
     print("\n[5/6] Evaluating SARSA Agent...")
+    env_sarsa = SnakeEnv(grid_size=grid_size, max_steps=max_steps, seed=seed)
     sarsa_agent = SARSAAgent(
-        env=env,
+        env=env_sarsa,
         epsilon=0.0,
         seed=config.random_seed,
     )
     sarsa_agent.load("models/sarsa_final.pkl")
-    results["SARSA"] = evaluate_agent(sarsa_agent, env, num_episodes)
+    results["SARSA"] = evaluate_agent(sarsa_agent, env_sarsa, num_episodes)
 
     # Evaluate DQN
     print("\n[6/6] Evaluating DQN Agent...")
-    dqn_agent = DQNAgent(env=env)
+    env_dqn = SnakeEnv(grid_size=grid_size, max_steps=max_steps, seed=seed)
+    dqn_agent = DQNAgent(env=env_dqn)
     dqn_agent.load("models/dqn_final.pt")
-    results["DQN"] = evaluate_agent(dqn_agent, env, num_episodes)
+    results["DQN"] = evaluate_agent(dqn_agent, env_dqn, num_episodes)
 
     # Display results
     print("\n" + "=" * 70)
