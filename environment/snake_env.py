@@ -5,7 +5,6 @@ from typing import TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 from rich.console import Console
-from rich.table import Table
 
 Position: TypeAlias = tuple[int, int]
 State: TypeAlias = NDArray[np.int8]
@@ -244,7 +243,8 @@ class SnakeEnv:
             return 1
 
         # Check self collision
-        if test_pos in self.snake:
+        collision_check = list(self.snake)[:-1] if test_pos != self.food else self.snake
+        if test_pos in collision_check:
             return 1
 
         return 0
@@ -297,11 +297,8 @@ class SnakeEnv:
             dtype=np.int8,
         )
 
-    def render(self, mode: str = "human") -> None:
+    def render(self) -> None:
         """Render the environment with colored output using rich."""
-        if mode != "human":
-            return
-
         self._ensure_initialized()
         console = Console()
         console.clear()

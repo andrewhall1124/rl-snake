@@ -1,3 +1,3 @@
-from .snake_env import SnakeEnv
+from .snake_env import Action, SnakeEnv
 
-__all__ = ["SnakeEnv"]
+__all__ = ["SnakeEnv", "Action"]

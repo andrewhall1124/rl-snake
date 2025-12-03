@@ -4,12 +4,14 @@ Base agent abstract class for reinforcement learning agents.
 
 from abc import ABC, abstractmethod
 
+from environment import Action
+
 
 class BaseAgent(ABC):
     """Abstract base class for reinforcement learning agents."""
 
     @abstractmethod
-    def get_action(self, training: bool = True) -> int:
+    def get_action(self, training: bool = True) -> Action:
         """
         Select an action given the current state.
 
